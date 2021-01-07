@@ -165,31 +165,46 @@ public class PartitionedProducerImpl<T> extends ProducerBase<T> {
 
     @Override
     CompletableFuture<MessageId> internalSendAsync(Message<?> message) {
-        return internalSendWithTxnAsync(message, null);
+        Optional<CompletableFuture<MessageId>> producerStateNotRight = checkStateBeforeSend();
+        return producerStateNotRight.orElseGet(() -> {
+            int partition = routerPolicy.choosePartition(message, topicMetadata);
+            return getProducerForPartition(partition).internalSendAsync(message);
+        });
+    }
+
+    private Optional<CompletableFuture<MessageId>> checkStateBeforeSend() {
+        switch (getState()) {
+            case Ready:
+            case Connecting:
+                return Optional.empty();
+            case Closing:
+            case Closed:
+                return Optional.of(FutureUtil.failedFuture(new PulsarClientException.AlreadyClosedException("Producer already closed")));
+            case ProducerFenced:
+                return Optional.of(FutureUtil.failedFuture(new PulsarClientException.ProducerFencedException("Producer was fenced")));
+            case Terminated:
+                return Optional.of(FutureUtil.failedFuture(new PulsarClientException.TopicTerminatedException("Topic was terminated")));
+            case Failed:
+            case Uninitialized:
+                return Optional.of(FutureUtil.failedFuture(new PulsarClientException.NotConnectedException()));
+            default:
+                throw new IllegalStateException("The state not defined in HandlerState");
+        }
+    }
+
+    private ProducerImpl<T> getProducerForPartition(int partition) {
+        checkArgument(partition >= 0 && partition < topicMetadata.numPartitions(),
+                "Illegal partition index chosen by the message routing policy: " + partition);
+        return producers.get(partition);
     }
 
     @Override
     CompletableFuture<MessageId> internalSendWithTxnAsync(Message<?> message, Transaction txn) {
-        switch (getState()) {
-            case Ready:
-            case Connecting:
-                break; // Ok
-            case Closing:
-            case Closed:
-                return FutureUtil.failedFuture(new PulsarClientException.AlreadyClosedException("Producer already closed"));
-            case ProducerFenced:
-                return FutureUtil.failedFuture(new PulsarClientException.ProducerFencedException("Producer was fenced"));
-            case Terminated:
-                return FutureUtil.failedFuture(new PulsarClientException.TopicTerminatedException("Topic was terminated"));
-            case Failed:
-            case Uninitialized:
-                return FutureUtil.failedFuture(new PulsarClientException.NotConnectedException());
-        }
-
-        int partition = routerPolicy.choosePartition(message, topicMetadata);
-        checkArgument(partition >= 0 && partition < topicMetadata.numPartitions(),
-                "Illegal partition index chosen by the message routing policy: " + partition);
-        return producers.get(partition).internalSendWithTxnAsync(message, txn);
+        Optional<CompletableFuture<MessageId>> producerStateNotRight = checkStateBeforeSend();
+        return producerStateNotRight.orElseGet(() -> {
+            int partition = routerPolicy.choosePartition(message, topicMetadata);
+            return getProducerForPartition(partition).internalSendWithTxnAsync(message, txn);
+        });
     }
 
     @Override

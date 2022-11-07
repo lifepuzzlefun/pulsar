@@ -60,6 +60,42 @@
       <version>${project.version}</version>
     </dependency>
 
+    <!-- https://mvnrepository.com/artifact/org.openjdk.jmh/jmh-core -->
+    <dependency>
+      <groupId>org.openjdk.jmh</groupId>
+      <artifactId>jmh-core</artifactId>
+      <version>1.35</version>
+    </dependency>
+
+    <!-- https://mvnrepository.com/artifact/org.openjdk.jmh/jmh-generator-annprocess -->
+    <!-- https://mvnrepository.com/artifact/org.openjdk.jmh/jmh-generator-annprocess -->
+    <dependency>
+      <groupId>org.openjdk.jmh</groupId>
+      <artifactId>jmh-generator-annprocess</artifactId>
+      <version>1.35</version>
+    </dependency>
+
+    <!-- https://mvnrepository.com/artifact/org.openjdk.jmh/jmh-generator-reflection -->
+    <dependency>
+      <groupId>org.openjdk.jmh</groupId>
+      <artifactId>jmh-generator-reflection</artifactId>
+      <version>1.35</version>
+    </dependency>
+
+    <!-- https://mvnrepository.com/artifact/org.openjdk.jmh/jmh-generator-bytecode -->
+    <dependency>
+      <groupId>org.openjdk.jmh</groupId>
+      <artifactId>jmh-generator-bytecode</artifactId>
+      <version>1.35</version>
+    </dependency>
+    <!-- https://mvnrepository.com/artifact/org.openjdk.jmh/jmh-generator-asm -->
+    <dependency>
+      <groupId>org.openjdk.jmh</groupId>
+      <artifactId>jmh-generator-asm</artifactId>
+      <version>1.35</version>
+    </dependency>
+
+
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>pulsar-metadata</artifactId>

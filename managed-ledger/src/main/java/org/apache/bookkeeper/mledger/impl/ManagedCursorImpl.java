@@ -185,7 +185,7 @@ public class ManagedCursorImpl implements ManagedCursor {
     private static final LongPairConsumer<PositionImpl> positionRangeConverter = PositionImpl::new;
 
     // the long pair return by this function is just use in RangeSetWrapper.
-    private static final RangeBoundConsumer<PositionImpl> positionRangeReverseConverter =
+    public static final RangeBoundConsumer<PositionImpl> positionRangeReverseConverter =
             (position) -> LongPairRecyclable.create(position.ledgerId, position.entryId);
 
     private static final LongPairConsumer<PositionImplRecyclable> recyclePositionRangeConverter = (key, value) -> {

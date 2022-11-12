@@ -1,8 +1,10 @@
 package org.apache.pulsar.jmh;
 
+import org.apache.bookkeeper.mledger.impl.ManagedCursorImpl;
 import org.apache.bookkeeper.mledger.impl.PositionImpl;
 import org.apache.bookkeeper.mledger.proto.MLDataFormats;
 import org.apache.pulsar.common.util.collections.ConcurrentOpenLongPairRangeSet;
+import org.apache.pulsar.common.util.collections.LongPairRangeSet;
 import org.openjdk.jmh.annotations.*;
 import org.openjdk.jmh.profile.GCProfiler;
 import org.openjdk.jmh.results.format.ResultFormatType;
@@ -15,14 +17,24 @@ import java.util.ArrayList;
 import java.util.List;
 
 
-@Warmup(iterations = 3, time = 60)
-@Measurement(iterations = 5, time = 60)
+@Warmup(iterations = 3, time = 30)
+@Measurement(iterations = 5, time = 30)
 @BenchmarkMode(Mode.Throughput)
 @State(Scope.Benchmark)
 public class COLPRangeSetBenchmark {
 
     private final ConcurrentOpenLongPairRangeSet<PositionImpl> set
             = new ConcurrentOpenLongPairRangeSet<>(4096, PositionImpl::new);
+
+    private final LongPairRangeSet.DefaultRangeSet<PositionImpl> defaultRangeSetNeedRecycle
+            = new LongPairRangeSet.DefaultRangeSet<>(PositionImpl::new,
+            ManagedCursorImpl.positionRangeReverseConverter,
+            true);
+
+    private final LongPairRangeSet.DefaultRangeSet<PositionImpl> defaultRangeSetNoRecycle
+            = new LongPairRangeSet.DefaultRangeSet<>(PositionImpl::new,
+            (position) -> new LongPairRangeSet.LongPair(position.getLedgerId(),position.getEntryId()),
+            false);
 
     @Param({"1000"})
     public int entryNumber;
@@ -37,6 +49,69 @@ public class COLPRangeSetBenchmark {
                 set.addOpenClosed(i, e, i, e + 2);
             }
         }
+    }
+
+
+    @Benchmark
+    public List<MLDataFormats.MessageRange> defaultRecycle() {
+        List<MLDataFormats.MessageRange> rangeList = new ArrayList<>(set.size());
+        MLDataFormats.NestedPositionInfo.Builder nestedPositionBuilder = MLDataFormats.NestedPositionInfo
+                .newBuilder();
+        MLDataFormats.MessageRange.Builder messageRangeBuilder = MLDataFormats.MessageRange.newBuilder();
+
+        defaultRangeSetNeedRecycle.forEachRawRange((lowerKey, lowerValue, upperKey, upperValue) -> {
+            MLDataFormats.NestedPositionInfo lowerPosition = nestedPositionBuilder
+                    .setLedgerId(lowerKey)
+                    .setEntryId(lowerValue)
+                    .build();
+
+            MLDataFormats.NestedPositionInfo upperPosition = nestedPositionBuilder
+                    .setLedgerId(lowerKey)
+                    .setEntryId(lowerValue)
+                    .build();
+
+            MLDataFormats.MessageRange messageRange = messageRangeBuilder
+                    .setLowerEndpoint(lowerPosition)
+                    .setUpperEndpoint(upperPosition)
+                    .build();
+
+            rangeList.add(messageRange);
+
+            return true;
+        });
+
+        return rangeList;
+    }
+
+    @Benchmark
+    public List<MLDataFormats.MessageRange> defaultOldNoRecycle() {
+        List<MLDataFormats.MessageRange> rangeList = new ArrayList<>(set.size());
+        MLDataFormats.NestedPositionInfo.Builder nestedPositionBuilder = MLDataFormats.NestedPositionInfo
+                .newBuilder();
+        MLDataFormats.MessageRange.Builder messageRangeBuilder = MLDataFormats.MessageRange.newBuilder();
+
+        defaultRangeSetNoRecycle.forEachRawRange((lowerKey, lowerValue, upperKey, upperValue) -> {
+            MLDataFormats.NestedPositionInfo lowerPosition = nestedPositionBuilder
+                    .setLedgerId(lowerKey)
+                    .setEntryId(lowerValue)
+                    .build();
+
+            MLDataFormats.NestedPositionInfo upperPosition = nestedPositionBuilder
+                    .setLedgerId(lowerKey)
+                    .setEntryId(lowerValue)
+                    .build();
+
+            MLDataFormats.MessageRange messageRange = messageRangeBuilder
+                    .setLowerEndpoint(lowerPosition)
+                    .setUpperEndpoint(upperPosition)
+                    .build();
+
+            rangeList.add(messageRange);
+
+            return true;
+        });
+
+        return rangeList;
     }
 
     @Benchmark
@@ -69,27 +144,26 @@ public class COLPRangeSetBenchmark {
                 .newBuilder();
         MLDataFormats.MessageRange.Builder messageRangeBuilder = MLDataFormats.MessageRange.newBuilder();
 
-        set.forEachWithRangeBoundMapper(
-                // conversion function for `ConcurrentOpenLongPairRangeSet`
-                (ledgerId, entryId) -> nestedPositionBuilder
-                        .setLedgerId(ledgerId)
-                        .setEntryId(entryId)
-                        .build(),
-                // conversion function for `LongPairRangeSet.DefaultRangeSet`
-                (positionImpl) -> nestedPositionBuilder
-                        .setLedgerId(positionImpl.getLedgerId())
-                        .setEntryId(positionImpl.getEntryId())
-                        .build(),
-                (lowerBound, upperBound) -> {
-                    MLDataFormats.MessageRange messageRange = messageRangeBuilder
-                            .setLowerEndpoint(lowerBound)
-                            .setUpperEndpoint(upperBound).build();
+        set.forEachRawRange((lowerKey, lowerValue, upperKey, upperValue) -> {
+            MLDataFormats.NestedPositionInfo lowerPosition = nestedPositionBuilder
+                    .setLedgerId(lowerKey)
+                    .setEntryId(lowerValue)
+                    .build();
 
-                    rangeList.add(messageRange);
+            MLDataFormats.NestedPositionInfo upperPosition = nestedPositionBuilder
+                    .setLedgerId(lowerKey)
+                    .setEntryId(lowerValue)
+                    .build();
 
-                    return true;
+            MLDataFormats.MessageRange messageRange = messageRangeBuilder
+                    .setLowerEndpoint(lowerPosition)
+                    .setUpperEndpoint(upperPosition)
+                    .build();
 
-                });
+            rangeList.add(messageRange);
+
+            return true;
+        });
 
         return rangeList;
     }

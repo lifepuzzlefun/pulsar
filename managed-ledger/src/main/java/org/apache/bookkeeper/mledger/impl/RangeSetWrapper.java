@@ -45,15 +45,24 @@ public class RangeSetWrapper<T extends Comparable<T>> implements LongPairRangeSe
      * Record which Ledger is dirty.
      */
     private final DefaultRangeSet<Long> dirtyLedgers = new LongPairRangeSet.DefaultRangeSet<>(
-            (LongPairConsumer<Long>) (key, value) -> key);
+            (LongPairConsumer<Long>) (key, value) -> key,
+            (RangeBoundConsumer<Long>) key -> new LongPair(key, 0), false);
 
-    public RangeSetWrapper(LongPairConsumer<T> rangeConverter, ManagedCursorImpl managedCursor) {
+    public RangeSetWrapper(LongPairConsumer<T> rangeConverter,
+                           RangeBoundConsumer<T> rangeBoundConsumer,
+                           boolean needRecycleLongPair,
+                           ManagedCursorImpl managedCursor) {
         requireNonNull(managedCursor);
         this.config = managedCursor.getConfig();
         this.rangeConverter = rangeConverter;
+
+        // please check if the `LongPair` returned by rangeBoundConsumer
+        // is just used in RangeSet itself.
+        // if not, `needRecycleLongPair` should be `false`
         this.rangeSet = config.isUnackedRangesOpenCacheSetEnabled()
                 ? new ConcurrentOpenLongPairRangeSet<>(4096, rangeConverter)
-                : new LongPairRangeSet.DefaultRangeSet<>(rangeConverter);
+                : new LongPairRangeSet.DefaultRangeSet<>(rangeConverter, rangeBoundConsumer, needRecycleLongPair);
+
         this.enableMultiEntry = config.isPersistentUnackedRangesWithMultipleEntriesEnabled();
     }
 
@@ -119,10 +128,8 @@ public class RangeSetWrapper<T extends Comparable<T>> implements LongPairRangeSe
     }
 
     @Override
-    public <O> void forEachWithRangeBoundMapper(LongPairConsumer<O> rawRangeBoundMapper,
-                                                RangeBoundConvertFunction<T, O> rangeBoundMapper,
-                                                RangeBoundBiConsumer<O> action) {
-        rangeSet.forEachWithRangeBoundMapper(rawRangeBoundMapper, rangeBoundMapper, action);
+    public void forEachRawRange(RawRangeProcessor<T> action) {
+        rangeSet.forEachRawRange(action);
     }
 
     @Override

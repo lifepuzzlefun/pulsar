@@ -27,7 +27,11 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Set;
+
+import io.netty.util.Recycler;
 import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.Setter;
 
 /**
  * A set comprising zero or more ranges type of key-value pair.
@@ -109,19 +113,11 @@ public interface LongPairRangeSet<T extends Comparable<T>> {
      * or action returns "false". Unless otherwise specified by the implementing class,
      * actions are performed in the order of entry set iteration (if an iteration order is specified.)
      *
-     * This method is optimized for reduce `Range` and `PositionImpl` object creation.
-     * Caller of this method can use either {@param rawRangeBoundConsumer}
-     * or {@param rangeBoundConvertFunction} to apply conversion directly
-     * on the raw LongPair like (long, long)
-     * or on the `T` (PositionImpl).
-     *
-     * Those convert function will apply on both bound of the range, then the result will pass to
+     * This method is optimized on reducing intermediate object creation.
      * {@param action} to do iteration jobs.
      *
      */
-    <O> void forEachWithRangeBoundMapper(LongPairConsumer<O> rawRangeBoundConsumer,
-                                         RangeBoundConvertFunction<T, O> rangeBoundConvertFunction,
-                                         RangeBoundBiConsumer<O> action);
+    void forEachRawRange(RawRangeProcessor<T> action);
 
     /**
      * Returns total number of ranges into the set.
@@ -159,6 +155,15 @@ public interface LongPairRangeSet<T extends Comparable<T>> {
     }
 
     /**
+     * Represents a function that accepts result and produces a LongPair.
+     * Reverse ops of `LongPairConsumer<T>`
+     * @param <T> the type of the result.
+     */
+    interface RangeBoundConsumer<T> {
+        LongPair apply(T bound);
+    }
+
+    /**
      * The interface exposing a method for processing of ranges.
      * @param <T> - The incoming type of data in the range object.
      */
@@ -172,27 +177,41 @@ public interface LongPairRangeSet<T extends Comparable<T>> {
     }
 
     /**
-     * The interface exposing a method for conversion each bound of ranges.
-     * this will be use in `forEachWithRangeBoundMapper` when iteration.
+     * The interface exposing a method for processing raw form of ranges.
+     * This method will omit the process to convert (long, long) to `T`
+     * create less object during the iteration.
      * @param <T> - The incoming type of data in the range object.
      * @param <O> - The output type of data after apply the conversion.
      */
-    interface RangeBoundConvertFunction<T, O> {
-        O apply(T rangeBound);
+    interface RawRangeProcessor<T> {
+        boolean processRawRange(long lowerKey, long lowerValue,
+                                long upperKey, long upperValue);
     }
 
-    /**
-     * The interface exposing a method for do iteration jobs after apply
-     * user define range bound conversion function.
-     * @param <O> the input type of parameter return by `RangeBoundConvertFunction`
-     */
-    interface RangeBoundBiConsumer<O> {
-        /**
-         *
-         * @param range
-         * @return false if there is no further processing required
-         */
-        boolean process(O rangeLowerBound, O rangeUpperBound);
+    class LongPairRecyclable extends LongPair {
+        private final Recycler.Handle<LongPairRecyclable> recyclerHandle;
+
+        private static final Recycler<LongPairRecyclable> RECYCLER = new Recycler<LongPairRecyclable>() {
+            @Override
+            protected LongPairRecyclable newObject(Recycler.Handle<LongPairRecyclable> recyclerHandle) {
+                return new LongPairRecyclable(recyclerHandle);
+            }
+        };
+
+        public LongPairRecyclable(Recycler.Handle<LongPairRecyclable> recyclerHandle) {
+            super(-1, -1);
+            this.recyclerHandle = recyclerHandle;
+        }
+
+        public static LongPairRecyclable create(long key, long value) {
+            LongPairRecyclable longPairRecyclable = RECYCLER.get();
+            longPairRecyclable.reset(key,value);
+            return longPairRecyclable;
+        }
+
+        public void recycle() {
+            recyclerHandle.recycle(this);
+        }
     }
 
     /**
@@ -220,6 +239,12 @@ public interface LongPairRangeSet<T extends Comparable<T>> {
 
         public long getValue() {
             return this.value;
+        }
+
+        protected LongPair reset(long key, long value) {
+            this.key = key;
+            this.value = value;
+            return this;
         }
 
         @Override
@@ -251,9 +276,15 @@ public interface LongPairRangeSet<T extends Comparable<T>> {
         RangeSet<T> set = TreeRangeSet.create();
 
         private final LongPairConsumer<T> consumer;
+        private final RangeBoundConsumer<T> rangeEndPointConsumer;
+        private final boolean needRecycle;
 
-        public DefaultRangeSet(LongPairConsumer<T> consumer) {
+        public DefaultRangeSet(LongPairConsumer<T> consumer,
+                               RangeBoundConsumer<T> reverseConsumer,
+                               boolean needRecycle) {
             this.consumer = consumer;
+            this.rangeEndPointConsumer = reverseConsumer;
+            this.needRecycle = needRecycle;
         }
 
         @Override
@@ -322,13 +353,24 @@ public interface LongPairRangeSet<T extends Comparable<T>> {
         }
 
         @Override
-        public <O> void forEachWithRangeBoundMapper(LongPairConsumer<O> __,
-                                RangeBoundConvertFunction<T, O> rangeBoundMapper,
-                                RangeBoundBiConsumer<O> action) {
+        public void forEachRawRange(RawRangeProcessor<T> action) {
             for (Range<T> range : asRanges()) {
-                O lower = rangeBoundMapper.apply(range.lowerEndpoint());
-                O upper = rangeBoundMapper.apply(range.upperEndpoint());
-                if (!action.process(lower, upper)) {
+                LongPair lowerEndpoint = this.rangeEndPointConsumer.apply(range.lowerEndpoint());
+                LongPair upperEndpoint = this.rangeEndPointConsumer.apply(range.upperEndpoint());
+
+                boolean pass = action.processRawRange(
+                        lowerEndpoint.getKey(),
+                        lowerEndpoint.getValue(),
+                        upperEndpoint.getKey(),
+                        upperEndpoint.getValue()
+                );
+
+                if (needRecycle) {
+                    ((LongPairRecyclable) lowerEndpoint).recycle();
+                    ((LongPairRecyclable) upperEndpoint).recycle();
+                }
+
+                if (!pass) {
                     break;
                 }
             }

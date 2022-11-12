@@ -33,7 +33,7 @@ public class DefaultRangeSetTest {
     @Test
     public void testBehavior() {
         LongPairRangeSet.DefaultRangeSet<LongPairRangeSet.LongPair> set =
-                new LongPairRangeSet.DefaultRangeSet<>(consumer, reverseConsumer);
+                new LongPairRangeSet.DefaultRangeSet<>(consumer, reverseConsumer, false);
         ConcurrentOpenLongPairRangeSet<LongPairRangeSet.LongPair> rangeSet =
                 new ConcurrentOpenLongPairRangeSet<>(consumer);
 

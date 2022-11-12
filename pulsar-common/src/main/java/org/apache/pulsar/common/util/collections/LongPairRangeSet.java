@@ -27,7 +27,11 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Set;
+
+import io.netty.util.Recycler;
 import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.Setter;
 
 /**
  * A set comprising zero or more ranges type of key-value pair.
@@ -184,6 +188,32 @@ public interface LongPairRangeSet<T extends Comparable<T>> {
                                 long upperKey, long upperValue);
     }
 
+    class LongPairRecyclable extends LongPair {
+        private final Recycler.Handle<LongPairRecyclable> recyclerHandle;
+
+        private static final Recycler<LongPairRecyclable> RECYCLER = new Recycler<LongPairRecyclable>() {
+            @Override
+            protected LongPairRecyclable newObject(Recycler.Handle<LongPairRecyclable> recyclerHandle) {
+                return new LongPairRecyclable(recyclerHandle);
+            }
+        };
+
+        public LongPairRecyclable(Recycler.Handle<LongPairRecyclable> recyclerHandle) {
+            super(-1, -1);
+            this.recyclerHandle = recyclerHandle;
+        }
+
+        public static LongPairRecyclable create(long key, long value) {
+            LongPairRecyclable longPairRecyclable = RECYCLER.get();
+            longPairRecyclable.reset(key,value);
+            return longPairRecyclable;
+        }
+
+        public void recycle() {
+            recyclerHandle.recycle(this);
+        }
+    }
+
     /**
      * This class is a simple key-value data structure.
      */
@@ -209,6 +239,12 @@ public interface LongPairRangeSet<T extends Comparable<T>> {
 
         public long getValue() {
             return this.value;
+        }
+
+        protected LongPair reset(long key, long value) {
+            this.key = key;
+            this.value = value;
+            return this;
         }
 
         @Override
@@ -241,10 +277,14 @@ public interface LongPairRangeSet<T extends Comparable<T>> {
 
         private final LongPairConsumer<T> consumer;
         private final RangeBoundConsumer<T> rangeEndPointConsumer;
+        private final boolean needRecycle;
 
-        public DefaultRangeSet(LongPairConsumer<T> consumer, RangeBoundConsumer<T> reverseConsumer) {
+        public DefaultRangeSet(LongPairConsumer<T> consumer,
+                               RangeBoundConsumer<T> reverseConsumer,
+                               boolean needRecycle) {
             this.consumer = consumer;
             this.rangeEndPointConsumer = reverseConsumer;
+            this.needRecycle = needRecycle;
         }
 
         @Override
@@ -317,8 +357,20 @@ public interface LongPairRangeSet<T extends Comparable<T>> {
             for (Range<T> range : asRanges()) {
                 LongPair lowerEndpoint = this.rangeEndPointConsumer.apply(range.lowerEndpoint());
                 LongPair upperEndpoint = this.rangeEndPointConsumer.apply(range.upperEndpoint());
-                if (!action.processRawRange(lowerEndpoint.key, lowerEndpoint.value,
-                        upperEndpoint.key, upperEndpoint.value)) {
+
+                boolean pass = action.processRawRange(
+                        lowerEndpoint.getKey(),
+                        lowerEndpoint.getValue(),
+                        upperEndpoint.getKey(),
+                        upperEndpoint.getValue()
+                );
+
+                if (needRecycle) {
+                    ((LongPairRecyclable) lowerEndpoint).recycle();
+                    ((LongPairRecyclable) upperEndpoint).recycle();
+                }
+
+                if (!pass) {
                     break;
                 }
             }

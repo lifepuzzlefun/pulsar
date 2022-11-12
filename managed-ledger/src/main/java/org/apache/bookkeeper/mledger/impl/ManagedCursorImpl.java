@@ -99,6 +99,7 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.apache.pulsar.common.util.collections.BitSetRecyclable;
 import org.apache.pulsar.common.util.collections.LongPairRangeSet;
 import org.apache.pulsar.common.util.collections.LongPairRangeSet.RangeBoundConsumer;
+import org.apache.pulsar.common.util.collections.LongPairRangeSet.LongPairRecyclable;
 import org.apache.pulsar.common.util.collections.LongPairRangeSet.LongPairConsumer;
 import org.apache.pulsar.metadata.api.Stat;
 import org.slf4j.Logger;
@@ -183,8 +184,9 @@ public class ManagedCursorImpl implements ManagedCursor {
 
     private static final LongPairConsumer<PositionImpl> positionRangeConverter = PositionImpl::new;
 
+    // the long pair return by this function is just use in RangeSetWrapper.
     private static final RangeBoundConsumer<PositionImpl> positionRangeReverseConverter =
-            (position) -> new LongPairRangeSet.LongPair(position.ledgerId, position.entryId);
+            (position) -> LongPairRecyclable.create(position.ledgerId, position.entryId);
 
     private static final LongPairConsumer<PositionImplRecyclable> recyclePositionRangeConverter = (key, value) -> {
         PositionImplRecyclable position = PositionImplRecyclable.create();
@@ -300,7 +302,9 @@ public class ManagedCursorImpl implements ManagedCursor {
         this.ledger = ledger;
         this.name = cursorName;
         this.individualDeletedMessages = new RangeSetWrapper<>(positionRangeConverter,
-                positionRangeReverseConverter, this);
+                positionRangeReverseConverter,
+                true,
+                this);
         if (config.isDeletionAtBatchIndexLevelEnabled()) {
             this.batchDeletedIndexes = new ConcurrentSkipListMap<>();
         } else {

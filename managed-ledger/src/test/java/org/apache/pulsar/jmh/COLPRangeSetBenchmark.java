@@ -6,6 +6,7 @@ import org.apache.bookkeeper.mledger.proto.MLDataFormats;
 import org.apache.pulsar.common.util.collections.ConcurrentOpenLongPairRangeSet;
 import org.apache.pulsar.common.util.collections.LongPairRangeSet;
 import org.openjdk.jmh.annotations.*;
+import org.openjdk.jmh.profile.AsyncProfiler;
 import org.openjdk.jmh.profile.GCProfiler;
 import org.openjdk.jmh.results.format.ResultFormatType;
 import org.openjdk.jmh.runner.Runner;
@@ -47,6 +48,8 @@ public class COLPRangeSetBenchmark {
         for (int i = 0; i < entryNumber; i++) {
             for (int e = 0; e < perEntry; e += 3) {
                 set.addOpenClosed(i, e, i, e + 2);
+                defaultRangeSetNeedRecycle.addOpenClosed(i, e, i, e + 2);
+                defaultRangeSetNoRecycle.addOpenClosed(i, e, i, e + 2);
             }
         }
     }
@@ -172,6 +175,8 @@ public class COLPRangeSetBenchmark {
         Options opt = new OptionsBuilder()
                 .include(COLPRangeSetBenchmark.class.getSimpleName())
                 .addProfiler(GCProfiler.class)
+                .addProfiler("jfr")
+//                .addProfiler(AsyncProfiler.class, "")
                 .forks(1)
                 .resultFormat(ResultFormatType.JSON)
                 .build();

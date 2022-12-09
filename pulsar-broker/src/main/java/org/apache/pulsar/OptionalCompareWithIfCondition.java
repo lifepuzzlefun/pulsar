@@ -6,6 +6,7 @@ import org.apache.bookkeeper.mledger.impl.EntryImpl;
 import org.apache.pulsar.broker.service.EntryAndMetadata;
 import org.apache.pulsar.common.api.proto.MessageMetadata;
 import org.openjdk.jmh.annotations.*;
+import org.openjdk.jmh.profile.JavaFlightRecorderProfiler;
 import org.openjdk.jmh.results.format.ResultFormatType;
 import org.openjdk.jmh.runner.Runner;
 import org.openjdk.jmh.runner.RunnerException;
@@ -22,21 +23,22 @@ import java.util.concurrent.ThreadLocalRandom;
 public class OptionalCompareWithIfCondition {
 
     public static final MessageMetadata data = new MessageMetadata();
+    public MessageMetadata[] metadataArray;
+    public Optional<MessageMetadata[]> optionalMessageMetadata;
+    public EntryAndMetadata entryAndMetadata = EntryAndMetadata.create(null, data);
 
-    public static final MessageMetadata[] NULL = null;
-    public static final Optional<MessageMetadata[]> EMPTY = Optional.empty();
-
-    public static MessageMetadata[] metadataArray;
-    public static Optional<MessageMetadata[]> optionalMessageMetadata;
-    public static final EntryAndMetadata entryAndMetadata = EntryAndMetadata.create(null, data);
-
-    public static final Entry entry = EntryImpl.create(0,0,new byte[0]);
+    public Entry entry = EntryImpl.create(0, 0, new byte[0]);
 
     public int metadataIndex;
+
+    public MessageMetadata[] NULLmetadataArray;
+    public Optional<MessageMetadata[]> emptrymetadataArray;
 
     @Setup(Level.Iteration)
     public void init() {
         metadataIndex = ThreadLocalRandom.current().nextInt(100);
+        entryAndMetadata = EntryAndMetadata.create(null, data);
+        entry = EntryImpl.create(0, 0, new byte[0]);
     }
 
     @Setup
@@ -48,6 +50,9 @@ public class OptionalCompareWithIfCondition {
         }
 
         optionalMessageMetadata = Optional.of(metadataArray);
+
+        NULLmetadataArray = null;
+        emptrymetadataArray = Optional.empty();
     }
 
 
@@ -90,24 +95,24 @@ public class OptionalCompareWithIfCondition {
 
     @Benchmark
     public MessageMetadata EmptyAndEntryAndMetadataIfCondition() {
-        return getMessageMetadataAt(NULL, metadataIndex, entryAndMetadata);
+        return getMessageMetadataAt(NULLmetadataArray, metadataIndex, entryAndMetadata);
     }
 
     @Benchmark
     public MessageMetadata EmptyAndEntryAndMetadataOptional() {
-        return getMessageMetadataAtOptional(EMPTY, metadataIndex, entryAndMetadata);
+        return getMessageMetadataAtOptional(emptrymetadataArray, metadataIndex, entryAndMetadata);
     }
 
     // case 3
 
     @Benchmark
     public MessageMetadata EmptyAndNotEntryMetadataIfCondition() {
-        return getMessageMetadataAt(NULL, metadataIndex, entry);
+        return getMessageMetadataAt(NULLmetadataArray, metadataIndex, entry);
     }
 
     @Benchmark
     public MessageMetadata EmptyAndNotEntryMetadataOptional() {
-        return getMessageMetadataAtOptional(EMPTY, metadataIndex, entry);
+        return getMessageMetadataAtOptional(emptrymetadataArray, metadataIndex, entry);
     }
 
 
@@ -115,6 +120,7 @@ public class OptionalCompareWithIfCondition {
         Options opt = new OptionsBuilder()
                 .include(OptionalCompareWithIfCondition.class.getSimpleName())
                 .forks(1)
+                .addProfiler(JavaFlightRecorderProfiler.class)
                 .resultFormat(ResultFormatType.JSON)
                 .build();
 

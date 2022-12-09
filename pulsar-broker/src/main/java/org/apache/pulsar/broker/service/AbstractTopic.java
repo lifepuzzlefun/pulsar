@@ -121,7 +121,6 @@ public abstract class AbstractTopic implements Topic, TopicPolicyListener<TopicP
 
     protected boolean preciseTopicPublishRateLimitingEnable;
 
-    @Getter
     protected boolean resourceGroupRateLimitingEnabled;
 
     private LongAdder bytesInCounter = new LongAdder();

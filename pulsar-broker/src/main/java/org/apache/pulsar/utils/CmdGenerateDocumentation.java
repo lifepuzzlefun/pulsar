@@ -26,7 +26,6 @@ import org.apache.pulsar.client.impl.conf.ClientConfigurationData;
 import org.apache.pulsar.common.util.BaseGenerateDocumentation;
 import org.apache.pulsar.websocket.service.WebSocketProxyConfiguration;
 
-@Data
 @Parameters(commandDescription = "Generate documentation automatically.")
 @Slf4j
 public class CmdGenerateDocumentation extends BaseGenerateDocumentation {

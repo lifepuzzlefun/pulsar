@@ -20,6 +20,8 @@ package org.apache.pulsar.broker.stats;
 
 import com.google.common.collect.Multimap;
 import java.io.ByteArrayOutputStream;
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.util.Collection;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
@@ -33,6 +35,7 @@ import org.apache.pulsar.client.api.Message;
 import org.apache.pulsar.client.api.Producer;
 import org.apache.pulsar.client.api.Schema;
 import org.apache.pulsar.metadata.api.MetadataStoreConfig;
+import org.apache.pulsar.metadata.impl.AbstractMetadataStore;
 import org.testng.Assert;
 import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeMethod;
@@ -110,6 +113,18 @@ public class MetadataStoreStatsTest extends BrokerTestBase {
         for (PrometheusMetricsTest.Metric m : opsLatency) {
             Assert.assertEquals(m.tags.get("cluster"), "test", metricsDebugMessage);
             String metadataStoreName = m.tags.get("name");
+
+            if (metadataStoreName == null) {
+                String marker = m.tags.get("marker");
+                if (marker != null) {
+                    Exception exception = AbstractMetadataStore.createLocations.get(marker);
+                    StringWriter sw = new StringWriter();
+                    PrintWriter pw = new PrintWriter(sw);
+                    exception.printStackTrace(pw);
+                    metricsDebugMessage = metricsDebugMessage + sw.getBuffer().toString();
+                }
+            }
+
             Assert.assertNotNull(metadataStoreName, metricsDebugMessage);
             Assert.assertTrue(metadataStoreName.equals(MetadataStoreConfig.METADATA_STORE)
                     || metadataStoreName.equals(MetadataStoreConfig.CONFIGURATION_METADATA_STORE)

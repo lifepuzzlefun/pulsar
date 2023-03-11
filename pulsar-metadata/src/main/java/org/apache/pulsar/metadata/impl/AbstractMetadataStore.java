@@ -33,6 +33,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.Executor;
 import java.util.concurrent.RejectedExecutionException;
@@ -87,6 +89,9 @@ public abstract class AbstractMetadataStore implements MetadataStoreExtended, Co
 
     protected abstract CompletableFuture<Boolean> existsFromStore(String path);
 
+    public static ConcurrentMap<String, AbstractMetadataStore> instances = new ConcurrentHashMap<>();
+    public static ConcurrentMap<String, Exception> createLocations = new ConcurrentHashMap<>();
+
     protected AbstractMetadataStore(String metadataStoreName, String marker) {
         this.executor = new ScheduledThreadPoolExecutor(1, new DefaultThreadFactory(metadataStoreName));
         registerListener(this);
@@ -94,6 +99,8 @@ public abstract class AbstractMetadataStore implements MetadataStoreExtended, Co
         this.marker = marker;
         if (metadataStoreName.equals("")) {
             log.info("create store with empty name marker {}", marker);
+            instances.put(marker, this);
+            createLocations.put(marker, new Exception(marker));
         }
 
         this.childrenCache = Caffeine.newBuilder()
@@ -520,6 +527,8 @@ public abstract class AbstractMetadataStore implements MetadataStoreExtended, Co
         this.metadataStoreStats.close();
 
         if (this.metadataStoreName.equals("")) {
+            instances.remove(marker);
+            createLocations.remove(marker);
             log.info("metadata store stopped {}", this.marker);
         }
     }

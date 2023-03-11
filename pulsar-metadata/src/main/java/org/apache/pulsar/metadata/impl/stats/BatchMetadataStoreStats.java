@@ -30,7 +30,7 @@ public final class BatchMetadataStoreStats implements AutoCloseable {
 
     private static final Gauge EXECUTOR_QUEUE_SIZE = Gauge
             .build("pulsar_batch_metadata_store_executor_queue_size", "-")
-            .labelNames(NAME)
+            .labelNames(NAME, "marker")
             .register();
     private static final Histogram OPS_WAITING = Histogram
             .build("pulsar_batch_metadata_store_queue_wait_time", "-")
@@ -57,22 +57,23 @@ public final class BatchMetadataStoreStats implements AutoCloseable {
     private final Histogram.Child batchOpsWaitingChild;
     private final Histogram.Child batchExecuteTimeChild;
     private final Histogram.Child opsPerBatchChild;
+    private final String tmpMarker;
 
-    public BatchMetadataStoreStats(String metadataStoreName, ExecutorService executor) {
+    public BatchMetadataStoreStats(String metadataStoreName, String tmpMarker, ExecutorService executor) {
         if (executor instanceof ThreadPoolExecutor tx) {
             this.executor = tx;
         } else {
             this.executor = null;
         }
         this.metadataStoreName = metadataStoreName;
-
+        this.tmpMarker = tmpMarker;
         EXECUTOR_QUEUE_SIZE.setChild(new Gauge.Child() {
             @Override
             public double get() {
                 return BatchMetadataStoreStats.this.executor == null ? 0 :
                         BatchMetadataStoreStats.this.executor.getQueue().size();
             }
-        }, metadataStoreName);
+        }, metadataStoreName, tmpMarker);
 
         this.batchOpsWaitingChild = OPS_WAITING.labels(metadataStoreName);
         this.batchExecuteTimeChild = BATCH_EXECUTE_TIME.labels(metadataStoreName);
@@ -95,7 +96,7 @@ public final class BatchMetadataStoreStats implements AutoCloseable {
     @Override
     public void close() throws Exception {
         if (closed.compareAndSet(false, true)) {
-            EXECUTOR_QUEUE_SIZE.remove(this.metadataStoreName);
+            EXECUTOR_QUEUE_SIZE.remove(this.metadataStoreName, tmpMarker);
             OPS_WAITING.remove(this.metadataStoreName);
             BATCH_EXECUTE_TIME.remove(this.metadataStoreName);
             OPS_PER_BATCH.remove(metadataStoreName);

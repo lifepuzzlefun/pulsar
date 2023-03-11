@@ -70,6 +70,20 @@ public class MetadataStoreStatsTest extends BrokerTestBase {
         super.internalCleanup();
     }
 
+    private String noName(PrometheusMetricsTest.Metric m, String metadataStoreName) {
+        if (metadataStoreName == null) {
+            String marker = m.tags.get("marker");
+            if (marker != null) {
+                Exception exception = AbstractMetadataStore.CREATE_LOCATIONS.get(marker);
+                StringWriter sw = new StringWriter();
+                PrintWriter pw = new PrintWriter(sw);
+                exception.printStackTrace(pw);
+                return sw.getBuffer().toString();
+            }
+        }
+
+        return "";
+    }
     @Test
     public void testMetadataStoreStats() throws Exception {
         String ns = "prop/ns-abc1";
@@ -114,16 +128,7 @@ public class MetadataStoreStatsTest extends BrokerTestBase {
             Assert.assertEquals(m.tags.get("cluster"), "test", metricsDebugMessage);
             String metadataStoreName = m.tags.get("name");
 
-            if (metadataStoreName == null) {
-                String marker = m.tags.get("marker");
-                if (marker != null) {
-                    Exception exception = AbstractMetadataStore.CREATE_LOCATIONS.get(marker);
-                    StringWriter sw = new StringWriter();
-                    PrintWriter pw = new PrintWriter(sw);
-                    exception.printStackTrace(pw);
-                    metricsDebugMessage = metricsDebugMessage + sw.getBuffer().toString();
-                }
-            }
+            metricsDebugMessage = metricsDebugMessage + noName(m, metadataStoreName);
 
             Assert.assertNotNull(metadataStoreName, metricsDebugMessage);
             Assert.assertTrue(metadataStoreName.equals(MetadataStoreConfig.METADATA_STORE)
@@ -211,6 +216,7 @@ public class MetadataStoreStatsTest extends BrokerTestBase {
         for (PrometheusMetricsTest.Metric m : executorQueueSize) {
             Assert.assertEquals(m.tags.get("cluster"), "test", metricsDebugMessage);
             String metadataStoreName = m.tags.get("name");
+            metricsDebugMessage = metricsDebugMessage + noName(m, metadataStoreName);
             Assert.assertNotNull(metadataStoreName, metricsDebugMessage);
             Assert.assertTrue(metadataStoreName.equals(MetadataStoreConfig.METADATA_STORE)
                     || metadataStoreName.equals(MetadataStoreConfig.CONFIGURATION_METADATA_STORE)

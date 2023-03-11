@@ -74,6 +74,7 @@ public abstract class AbstractMetadataStore implements MetadataStoreExtended, Co
     private final AsyncLoadingCache<String, Boolean> existsCache;
     private final CopyOnWriteArrayList<MetadataCacheImpl<?>> metadataCaches = new CopyOnWriteArrayList<>();
     private final MetadataStoreStats metadataStoreStats;
+    private final String marker;
 
     // We don't strictly need to use 'volatile' here because we don't need the precise consistent semantic. Instead,
     // we want to avoid the overhead of 'volatile'.
@@ -86,9 +87,14 @@ public abstract class AbstractMetadataStore implements MetadataStoreExtended, Co
 
     protected abstract CompletableFuture<Boolean> existsFromStore(String path);
 
-    protected AbstractMetadataStore(String metadataStoreName) {
+    protected AbstractMetadataStore(String metadataStoreName, String marker) {
         this.executor = new ScheduledThreadPoolExecutor(1, new DefaultThreadFactory(metadataStoreName));
         registerListener(this);
+
+        this.marker = marker;
+        if (metadataStoreName.equals("")) {
+            log.info("create store with empty name marker {}", marker);
+        }
 
         this.childrenCache = Caffeine.newBuilder()
                 .refreshAfterWrite(CACHE_REFRESH_TIME_MILLIS, TimeUnit.MILLISECONDS)
@@ -512,6 +518,10 @@ public abstract class AbstractMetadataStore implements MetadataStoreExtended, Co
         executor.shutdownNow();
         executor.awaitTermination(10, TimeUnit.SECONDS);
         this.metadataStoreStats.close();
+
+        if (this.metadataStoreName.equals("")) {
+            log.info("metadata store stopped {}", this.marker);
+        }
     }
 
     @VisibleForTesting

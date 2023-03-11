@@ -18,6 +18,7 @@
  */
 package org.apache.pulsar.metadata.api;
 
+import java.util.UUID;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.ToString;
@@ -86,6 +87,9 @@ public class MetadataStoreConfig {
      */
     @Builder.Default
     private final boolean fsyncEnable = true;
+
+    @Builder.Default
+    private String tmpMarker = UUID.randomUUID().toString();
 
     /**
      * Pluggable MetadataEventSynchronizer to sync metadata events across the

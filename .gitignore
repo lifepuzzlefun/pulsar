@@ -8,7 +8,6 @@ logs
 packages-storage
 pulsar-broker/data/
 pulsar-broker/tmp.*
-pulsar-broker/src/test/resources/log4j2.yaml
 pulsar-functions/worker/test-tenant/
 pulsar-broker/src/test/resources/pulsar-functions-api-examples.jar
 pulsar-functions/runtime/src/test/resources/

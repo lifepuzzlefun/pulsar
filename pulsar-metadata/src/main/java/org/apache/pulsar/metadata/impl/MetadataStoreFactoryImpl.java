@@ -45,6 +45,12 @@ public class MetadataStoreFactoryImpl {
     public static MetadataStoreExtended createExtended(String metadataURL, MetadataStoreConfig metadataStoreConfig)
             throws
             MetadataStoreException {
+        if (metadataStoreConfig.getMetadataStoreName().equals("")) {
+            log.error("create extened metadata store with name {} tmpMarker {}",
+                    metadataStoreConfig.getMetadataStoreName(),
+                    metadataStoreConfig.getTmpMarker(), new Exception("hello"));
+        }
+
         MetadataStore store = MetadataStoreFactoryImpl.newInstance(metadataURL, metadataStoreConfig, true);
         if (!(store instanceof MetadataStoreExtended)) {
             throw new MetadataStoreException.InvalidImplementationException(

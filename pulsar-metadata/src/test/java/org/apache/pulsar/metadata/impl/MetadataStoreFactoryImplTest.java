@@ -34,6 +34,7 @@ import org.testng.annotations.Test;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
 public class MetadataStoreFactoryImplTest {
@@ -91,7 +92,7 @@ public class MetadataStoreFactoryImplTest {
 
     public static class MyMetadataStore extends AbstractMetadataStore {
         protected MyMetadataStore() {
-            super("custom");
+            super("custom", UUID.randomUUID().toString());
         }
 
         @Override

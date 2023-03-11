@@ -89,8 +89,8 @@ public abstract class AbstractMetadataStore implements MetadataStoreExtended, Co
 
     protected abstract CompletableFuture<Boolean> existsFromStore(String path);
 
-    public static ConcurrentMap<String, AbstractMetadataStore> instances = new ConcurrentHashMap<>();
-    public static ConcurrentMap<String, Exception> createLocations = new ConcurrentHashMap<>();
+    public static final ConcurrentMap<String, AbstractMetadataStore> INSTA = new ConcurrentHashMap<>();
+    public static final ConcurrentMap<String, Exception> CREATE_LOCATIONS = new ConcurrentHashMap<>();
 
     protected AbstractMetadataStore(String metadataStoreName, String marker) {
         this.executor = new ScheduledThreadPoolExecutor(1, new DefaultThreadFactory(metadataStoreName));
@@ -99,8 +99,8 @@ public abstract class AbstractMetadataStore implements MetadataStoreExtended, Co
         this.marker = marker;
         if (metadataStoreName.equals("")) {
             log.info("create store with empty name marker {}", marker);
-            instances.put(marker, this);
-            createLocations.put(marker, new Exception(marker));
+            INSTA.put(marker, this);
+            CREATE_LOCATIONS.put(marker, new Exception(marker));
         }
 
         this.childrenCache = Caffeine.newBuilder()
@@ -527,8 +527,8 @@ public abstract class AbstractMetadataStore implements MetadataStoreExtended, Co
         this.metadataStoreStats.close();
 
         if (this.metadataStoreName.equals("")) {
-            instances.remove(marker);
-            createLocations.remove(marker);
+            INSTA.remove(marker);
+            CREATE_LOCATIONS.remove(marker);
             log.info("metadata store stopped {}", this.marker);
         }
     }

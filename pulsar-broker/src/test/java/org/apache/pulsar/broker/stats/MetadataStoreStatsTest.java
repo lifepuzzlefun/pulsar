@@ -117,7 +117,7 @@ public class MetadataStoreStatsTest extends BrokerTestBase {
             if (metadataStoreName == null) {
                 String marker = m.tags.get("marker");
                 if (marker != null) {
-                    Exception exception = AbstractMetadataStore.createLocations.get(marker);
+                    Exception exception = AbstractMetadataStore.CREATE_LOCATIONS.get(marker);
                     StringWriter sw = new StringWriter();
                     PrintWriter pw = new PrintWriter(sw);
                     exception.printStackTrace(pw);

@@ -20,6 +20,8 @@ package org.apache.pulsar.metadata.impl.stats;
 
 import io.prometheus.client.Counter;
 import io.prometheus.client.Histogram;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public final class MetadataStoreStats implements AutoCloseable {
@@ -58,8 +60,13 @@ public final class MetadataStoreStats implements AutoCloseable {
     private final String metadataStoreName;
     private final AtomicBoolean closed = new AtomicBoolean(false);
 
+    public static final ConcurrentMap<String, MetadataStoreStats> INSTA = new ConcurrentHashMap<>();
+    public static final ConcurrentMap<String, Exception> CREATE_LOCATIONS = new ConcurrentHashMap<>();
+
     public MetadataStoreStats(String metadataStoreName) {
         this.metadataStoreName = metadataStoreName;
+        INSTA.put(metadataStoreName, this);
+        CREATE_LOCATIONS.put(metadataStoreName, new Exception(""));
 
         this.getOpsSucceedChild = OPS_LATENCY.labels(metadataStoreName, OPS_TYPE_GET, STATUS_SUCCESS);
         this.delOpsSucceedChild = OPS_LATENCY.labels(metadataStoreName, OPS_TYPE_DEL, STATUS_SUCCESS);
@@ -98,6 +105,8 @@ public final class MetadataStoreStats implements AutoCloseable {
     @Override
     public void close() throws Exception {
         if (this.closed.compareAndSet(false, true)) {
+            INSTA.remove(this.metadataStoreName);
+            CREATE_LOCATIONS.remove(this.metadataStoreName);
             OPS_LATENCY.remove(this.metadataStoreName, OPS_TYPE_GET, STATUS_SUCCESS);
             OPS_LATENCY.remove(this.metadataStoreName, OPS_TYPE_DEL, STATUS_SUCCESS);
             OPS_LATENCY.remove(this.metadataStoreName, OPS_TYPE_PUT, STATUS_SUCCESS);

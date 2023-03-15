@@ -97,11 +97,11 @@ public abstract class AbstractMetadataStore implements MetadataStoreExtended, Co
         registerListener(this);
 
         this.marker = marker;
-        if (metadataStoreName.equals("")) {
-            log.info("create store with empty name marker {}", marker);
-            INSTA.put(marker, this);
-            CREATE_LOCATIONS.put(marker, new Exception(marker));
-        }
+
+        log.info("create store with empty name marker {}", marker);
+        INSTA.put(marker, this);
+        CREATE_LOCATIONS.put(marker, new Exception(marker));
+
 
         this.childrenCache = Caffeine.newBuilder()
                 .refreshAfterWrite(CACHE_REFRESH_TIME_MILLIS, TimeUnit.MILLISECONDS)
@@ -114,7 +114,7 @@ public abstract class AbstractMetadataStore implements MetadataStoreExtended, Co
 
                     @Override
                     public CompletableFuture<List<String>> asyncReload(String key, List<String> oldValue,
-                            Executor executor) {
+                                                                       Executor executor) {
                         if (isConnected) {
                             return getChildrenFromStore(key);
                         } else {
@@ -135,7 +135,7 @@ public abstract class AbstractMetadataStore implements MetadataStoreExtended, Co
 
                     @Override
                     public CompletableFuture<Boolean> asyncReload(String key, Boolean oldValue,
-                            Executor executor) {
+                                                                  Executor executor) {
                         if (isConnected) {
                             return existsFromStore(key);
                         } else {
@@ -433,7 +433,7 @@ public abstract class AbstractMetadataStore implements MetadataStoreExtended, Co
 
     @Override
     public final CompletableFuture<Stat> put(String path, byte[] data, Optional<Long> optExpectedVersion,
-            EnumSet<CreateOption> options) {
+                                             EnumSet<CreateOption> options) {
         if (isClosed()) {
             return FutureUtil.failedFuture(
                     new MetadataStoreException.AlreadyClosedException());
@@ -473,8 +473,9 @@ public abstract class AbstractMetadataStore implements MetadataStoreExtended, Co
         }
 
     }
+
     public final CompletableFuture<Stat> putInternal(String path, byte[] data, Optional<Long> optExpectedVersion,
-            Set<CreateOption> options) {
+                                                     Set<CreateOption> options) {
         // Ensure caches are invalidated before the operation is confirmed
         return storePut(path, data, optExpectedVersion,
                 (options != null && !options.isEmpty()) ? EnumSet.copyOf(options) : EnumSet.noneOf(CreateOption.class))
@@ -526,11 +527,11 @@ public abstract class AbstractMetadataStore implements MetadataStoreExtended, Co
         executor.awaitTermination(10, TimeUnit.SECONDS);
         this.metadataStoreStats.close();
 
-        if (this.metadataStoreName.equals("")) {
-            INSTA.remove(marker);
-            CREATE_LOCATIONS.remove(marker);
-            log.info("metadata store stopped {}", this.marker);
-        }
+
+        INSTA.remove(marker);
+        CREATE_LOCATIONS.remove(marker);
+        log.info("metadata store stopped {}", this.marker);
+
     }
 
     @VisibleForTesting
@@ -567,7 +568,7 @@ public abstract class AbstractMetadataStore implements MetadataStoreExtended, Co
      * 2. starts with '/'
      * 3. not ends with '/', except root path "/"
      */
-   static boolean isValidPath(String path) {
+    static boolean isValidPath(String path) {
         return StringUtils.equals(path, "/")
                 || StringUtils.isNotBlank(path)
                 && path.startsWith("/")

@@ -19,6 +19,7 @@
 package org.apache.pulsar.broker.stats;
 
 import com.google.common.collect.Multimap;
+
 import java.io.ByteArrayOutputStream;
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -26,6 +27,7 @@ import java.util.Collection;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
+
 import lombok.Cleanup;
 import org.apache.pulsar.broker.ServiceConfiguration;
 import org.apache.pulsar.broker.authentication.AuthenticationProviderToken;
@@ -37,6 +39,7 @@ import org.apache.pulsar.client.api.Producer;
 import org.apache.pulsar.client.api.Schema;
 import org.apache.pulsar.metadata.api.MetadataStoreConfig;
 import org.apache.pulsar.metadata.impl.AbstractMetadataStore;
+import org.apache.pulsar.metadata.impl.stats.MetadataStoreStats;
 import org.testng.Assert;
 import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeMethod;
@@ -71,28 +74,6 @@ public class MetadataStoreStatsTest extends BrokerTestBase {
         super.internalCleanup();
     }
 
-    private String noName(PrometheusMetricsTest.Metric m, String metadataStoreName) {
-        if (metadataStoreName == null) {
-            String marker = m.tags.get("marker");
-            if (marker != null) {
-                String collect = AbstractMetadataStore.CREATE_LOCATIONS.entrySet().stream().map(entry -> {
-                    String mar = entry.getKey();
-                    Exception exception = entry.getValue();
-                    StringWriter sw = new StringWriter();
-                    PrintWriter pw = new PrintWriter(sw);
-                    pw.println(mar);
-                    pw.println();
-                    exception.printStackTrace(pw);
-
-                    return pw.toString();
-                }).collect(Collectors.joining(","));
-
-                return collect;
-            }
-        }
-
-        return "";
-    }
     @Test
     public void testMetadataStoreStats() throws Exception {
         String ns = "prop/ns-abc1";
@@ -125,7 +106,31 @@ public class MetadataStoreStatsTest extends BrokerTestBase {
         String metricsStr = output.toString();
         Multimap<String, PrometheusMetricsTest.Metric> metricsMap = PrometheusMetricsTest.parseMetrics(metricsStr);
 
-        String metricsDebugMessage = "Assertion failed with metrics:\n" + metricsStr + "\n";
+        String collect1 = MetadataStoreStats.CREATE_LOCATIONS.entrySet().stream().map(entry -> {
+            String mar = entry.getKey();
+            Exception exception = entry.getValue();
+            StringWriter sw = new StringWriter();
+            PrintWriter pw = new PrintWriter(sw);
+            pw.println(mar);
+            pw.println();
+            exception.printStackTrace(pw);
+
+            return pw.toString();
+        }).collect(Collectors.joining(","));
+
+        String collect = AbstractMetadataStore.CREATE_LOCATIONS.entrySet().stream().map(entry -> {
+            String mar = entry.getKey();
+            Exception exception = entry.getValue();
+            StringWriter sw = new StringWriter();
+            PrintWriter pw = new PrintWriter(sw);
+            pw.println(mar);
+            pw.println();
+            exception.printStackTrace(pw);
+
+            return pw.toString();
+        }).collect(Collectors.joining(","));
+
+        String metricsDebugMessage = "Assertion failed with metrics:\n" + collect1 + "\n" + collect + metricsStr + "\n";
 
         Collection<PrometheusMetricsTest.Metric> opsLatency = metricsMap.get("pulsar_metadata_store_ops_latency_ms" + "_sum");
         Collection<PrometheusMetricsTest.Metric> putBytes = metricsMap.get("pulsar_metadata_store_put_bytes" + "_total");
@@ -136,8 +141,6 @@ public class MetadataStoreStatsTest extends BrokerTestBase {
         for (PrometheusMetricsTest.Metric m : opsLatency) {
             Assert.assertEquals(m.tags.get("cluster"), "test", metricsDebugMessage);
             String metadataStoreName = m.tags.get("name");
-
-            metricsDebugMessage = metricsDebugMessage + noName(m, metadataStoreName);
 
             Assert.assertNotNull(metadataStoreName, metricsDebugMessage);
             Assert.assertTrue(metadataStoreName.equals(MetadataStoreConfig.METADATA_STORE)
@@ -215,7 +218,31 @@ public class MetadataStoreStatsTest extends BrokerTestBase {
         Collection<PrometheusMetricsTest.Metric> batchExecuteTime = metricsMap.get("pulsar_batch_metadata_store_batch_execute_time_ms" + "_sum");
         Collection<PrometheusMetricsTest.Metric> opsPerBatch = metricsMap.get("pulsar_batch_metadata_store_batch_size" + "_sum");
 
-        String metricsDebugMessage = "Assertion failed with metrics:\n" + metricsStr + "\n";
+        String collect1 = MetadataStoreStats.CREATE_LOCATIONS.entrySet().stream().map(entry -> {
+            String mar = entry.getKey();
+            Exception exception = entry.getValue();
+            StringWriter sw = new StringWriter();
+            PrintWriter pw = new PrintWriter(sw);
+            pw.println(mar);
+            pw.println();
+            exception.printStackTrace(pw);
+
+            return pw.toString();
+        }).collect(Collectors.joining(","));
+
+        String collect = AbstractMetadataStore.CREATE_LOCATIONS.entrySet().stream().map(entry -> {
+            String mar = entry.getKey();
+            Exception exception = entry.getValue();
+            StringWriter sw = new StringWriter();
+            PrintWriter pw = new PrintWriter(sw);
+            pw.println(mar);
+            pw.println();
+            exception.printStackTrace(pw);
+
+            return pw.toString();
+        }).collect(Collectors.joining(","));
+
+        String metricsDebugMessage = "Assertion failed with metrics:\n" + collect1 + "\n" + collect + metricsStr + "\n";
 
         Assert.assertTrue(executorQueueSize.size() > 1, metricsDebugMessage);
         Assert.assertTrue(opsWaiting.size() > 1, metricsDebugMessage);
@@ -225,7 +252,6 @@ public class MetadataStoreStatsTest extends BrokerTestBase {
         for (PrometheusMetricsTest.Metric m : executorQueueSize) {
             Assert.assertEquals(m.tags.get("cluster"), "test", metricsDebugMessage);
             String metadataStoreName = m.tags.get("name");
-            metricsDebugMessage = metricsDebugMessage + noName(m, metadataStoreName);
             Assert.assertNotNull(metadataStoreName, metricsDebugMessage);
             Assert.assertTrue(metadataStoreName.equals(MetadataStoreConfig.METADATA_STORE)
                     || metadataStoreName.equals(MetadataStoreConfig.CONFIGURATION_METADATA_STORE)

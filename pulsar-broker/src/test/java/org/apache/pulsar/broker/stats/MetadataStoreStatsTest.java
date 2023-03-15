@@ -25,6 +25,7 @@ import java.io.StringWriter;
 import java.util.Collection;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 import lombok.Cleanup;
 import org.apache.pulsar.broker.ServiceConfiguration;
 import org.apache.pulsar.broker.authentication.AuthenticationProviderToken;
@@ -74,11 +75,19 @@ public class MetadataStoreStatsTest extends BrokerTestBase {
         if (metadataStoreName == null) {
             String marker = m.tags.get("marker");
             if (marker != null) {
-                Exception exception = AbstractMetadataStore.CREATE_LOCATIONS.get(marker);
-                StringWriter sw = new StringWriter();
-                PrintWriter pw = new PrintWriter(sw);
-                exception.printStackTrace(pw);
-                return sw.getBuffer().toString();
+                String collect = AbstractMetadataStore.CREATE_LOCATIONS.entrySet().stream().map(entry -> {
+                    String mar = entry.getKey();
+                    Exception exception = entry.getValue();
+                    StringWriter sw = new StringWriter();
+                    PrintWriter pw = new PrintWriter(sw);
+                    pw.println(mar);
+                    pw.println();
+                    exception.printStackTrace(pw);
+
+                    return pw.toString();
+                }).collect(Collectors.joining(","));
+
+                return collect;
             }
         }
 

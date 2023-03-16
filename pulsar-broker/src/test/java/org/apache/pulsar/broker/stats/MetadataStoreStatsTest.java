@@ -115,7 +115,7 @@ public class MetadataStoreStatsTest extends BrokerTestBase {
             pw.println();
             exception.printStackTrace(pw);
 
-            return pw.toString();
+            return sw.toString();
         }).collect(Collectors.joining(","));
 
         String collect = AbstractMetadataStore.CREATE_LOCATIONS.entrySet().stream().map(entry -> {
@@ -127,7 +127,7 @@ public class MetadataStoreStatsTest extends BrokerTestBase {
             pw.println();
             exception.printStackTrace(pw);
 
-            return pw.toString();
+            return sw.toString();
         }).collect(Collectors.joining(","));
 
         String metricsDebugMessage = "Assertion failed with metrics:\n" + collect1 + "\n" + collect + metricsStr + "\n";
@@ -227,7 +227,7 @@ public class MetadataStoreStatsTest extends BrokerTestBase {
             pw.println();
             exception.printStackTrace(pw);
 
-            return pw.toString();
+            return sw.toString();
         }).collect(Collectors.joining(","));
 
         String collect = AbstractMetadataStore.CREATE_LOCATIONS.entrySet().stream().map(entry -> {
@@ -239,7 +239,7 @@ public class MetadataStoreStatsTest extends BrokerTestBase {
             pw.println();
             exception.printStackTrace(pw);
 
-            return pw.toString();
+            return sw.toString();
         }).collect(Collectors.joining(","));
 
         String metricsDebugMessage = "Assertion failed with metrics:\n" + collect1 + "\n" + collect + metricsStr + "\n";

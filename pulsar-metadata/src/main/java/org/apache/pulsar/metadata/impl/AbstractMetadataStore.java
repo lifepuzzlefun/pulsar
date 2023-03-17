@@ -47,6 +47,7 @@ import java.util.stream.Collectors;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.logging.log4j.util.Strings;
 import org.apache.pulsar.common.util.FutureUtil;
 import org.apache.pulsar.metadata.api.GetResult;
 import org.apache.pulsar.metadata.api.MetadataCache;
@@ -100,7 +101,10 @@ public abstract class AbstractMetadataStore implements MetadataStoreExtended, Co
 
         log.info("create store with empty name marker {}", marker);
         INSTA.put(marker, this);
-        CREATE_LOCATIONS.put(marker, new Exception(marker));
+
+        if(Strings.isBlank(metadataStoreName)) {
+            CREATE_LOCATIONS.put(marker, new Exception(marker));
+        }
 
 
         this.childrenCache = Caffeine.newBuilder()

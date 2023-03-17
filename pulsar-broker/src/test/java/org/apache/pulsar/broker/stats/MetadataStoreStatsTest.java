@@ -114,6 +114,7 @@ public class MetadataStoreStatsTest extends BrokerTestBase {
             pw.println(mar);
             pw.println();
             exception.printStackTrace(pw);
+            pw.println("-------");
 
             return sw.toString();
         }).collect(Collectors.joining(","));
@@ -126,9 +127,13 @@ public class MetadataStoreStatsTest extends BrokerTestBase {
             pw.println(mar);
             pw.println();
             exception.printStackTrace(pw);
+            pw.println("-------");
 
             return sw.toString();
         }).collect(Collectors.joining(","));
+
+        Assert.assertTrue(MetadataStoreStats.CREATE_LOCATIONS.isEmpty(), collect1 + collect);
+        Assert.assertTrue(AbstractMetadataStore.CREATE_LOCATIONS.isEmpty(), collect1 + collect);
 
         String metricsDebugMessage = "Assertion failed with metrics:\n" + collect1 + "\n" + collect + metricsStr + "\n";
 
@@ -226,6 +231,7 @@ public class MetadataStoreStatsTest extends BrokerTestBase {
             pw.println(mar);
             pw.println();
             exception.printStackTrace(pw);
+            pw.println("-------");
 
             return sw.toString();
         }).collect(Collectors.joining(","));
@@ -238,9 +244,14 @@ public class MetadataStoreStatsTest extends BrokerTestBase {
             pw.println(mar);
             pw.println();
             exception.printStackTrace(pw);
+            pw.println("-------");
 
             return sw.toString();
         }).collect(Collectors.joining(","));
+
+
+        Assert.assertTrue(MetadataStoreStats.CREATE_LOCATIONS.isEmpty(), collect1 + collect);
+        Assert.assertTrue(AbstractMetadataStore.CREATE_LOCATIONS.isEmpty(), collect1 + collect);
 
         String metricsDebugMessage = "Assertion failed with metrics:\n" + collect1 + "\n" + collect + metricsStr + "\n";
 

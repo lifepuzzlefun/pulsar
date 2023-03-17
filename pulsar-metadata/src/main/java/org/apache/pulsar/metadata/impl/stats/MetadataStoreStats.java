@@ -20,11 +20,11 @@ package org.apache.pulsar.metadata.impl.stats;
 
 import io.prometheus.client.Counter;
 import io.prometheus.client.Histogram;
-import org.apache.logging.log4j.util.Strings;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicBoolean;
+import org.apache.logging.log4j.util.Strings;
 
 public final class MetadataStoreStats implements AutoCloseable {
     private static final double[] BUCKETS = new double[]{1, 3, 5, 10, 20, 50, 100, 200, 500, 1000, 2000, 5000};

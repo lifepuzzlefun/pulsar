@@ -102,7 +102,7 @@ public abstract class AbstractMetadataStore implements MetadataStoreExtended, Co
         log.info("create store with empty name marker {}", marker);
         INSTA.put(marker, this);
 
-        if(Strings.isBlank(metadataStoreName)) {
+        if (Strings.isBlank(metadataStoreName)) {
             CREATE_LOCATIONS.put(marker, new Exception(marker));
         }
 

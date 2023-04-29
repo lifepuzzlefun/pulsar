@@ -1144,7 +1144,7 @@ public class PulsarService implements AutoCloseable, ShutdownService {
 
                             loadSheddingTask = new LoadSheddingTask(loadManager,
                                     loadManagerExecutor,
-                                    loadBalancerConfiguration);
+                                    config);
 
                             loadSheddingTask.start();
                             loadResourceQuotaTask = loadManagerExecutor.scheduleAtFixedRate(

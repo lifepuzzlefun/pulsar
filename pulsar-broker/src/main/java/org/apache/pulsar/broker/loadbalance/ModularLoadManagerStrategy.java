@@ -60,14 +60,14 @@ public interface ModularLoadManagerStrategy {
      * @param conf ServiceConfiguration to use.
      * @return A placement strategy from the given configurations.
      */
-    static ModularLoadManagerStrategy create(final LoadBalancerConfiguration conf) {
+    static ModularLoadManagerStrategy create(final ServiceConfiguration conf) {
         try {
-            return Reflections.createInstance(conf.getLoadBalancerLoadPlacementStrategy(),
+            return Reflections.createInstance(conf.getLoadBalancerConfiguration().getLoadBalancerLoadPlacementStrategy(),
                     ModularLoadManagerStrategy.class, Thread.currentThread().getContextClassLoader());
         } catch (Exception e) {
             throw new RuntimeException(
-                    "Could not load LoadBalancerLoadPlacementStrategy:" + conf.getLoadBalancerLoadPlacementStrategy(),
-                    e);
+                    "Could not load LoadBalancerLoadPlacementStrategy:" +
+                            conf.getLoadBalancerConfiguration().getLoadBalancerLoadPlacementStrategy(), e);
         }
     }
 }

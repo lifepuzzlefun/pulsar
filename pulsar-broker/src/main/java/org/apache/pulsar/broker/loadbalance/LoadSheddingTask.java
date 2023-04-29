@@ -22,7 +22,8 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
-import org.apache.pulsar.broker.configuration.LoadBalancerConfiguration;
+
+import org.apache.pulsar.broker.ServiceConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -34,7 +35,7 @@ public class LoadSheddingTask implements Runnable {
     private final AtomicReference<LoadManager> loadManager;
     private final ScheduledExecutorService loadManagerExecutor;
 
-    private final LoadBalancerConfiguration config;
+    private final ServiceConfiguration config;
 
     private volatile boolean isCancel = false;
 
@@ -42,7 +43,7 @@ public class LoadSheddingTask implements Runnable {
 
     public LoadSheddingTask(AtomicReference<LoadManager> loadManager,
                             ScheduledExecutorService loadManagerExecutor,
-                            LoadBalancerConfiguration config) {
+                            ServiceConfiguration config) {
         this.loadManager = loadManager;
         this.loadManagerExecutor = loadManagerExecutor;
         this.config = config;
@@ -66,7 +67,7 @@ public class LoadSheddingTask implements Runnable {
         if (!isCancel && loadManagerExecutor != null && config != null) {
             future = loadManagerExecutor.schedule(
                     this,
-                    config.getLoadBalancerSheddingIntervalMinutes(),
+                    config.getLoadBalancerConfiguration().getLoadBalancerSheddingIntervalMinutes(),
                     TimeUnit.MINUTES);
         }
     }

@@ -3015,6 +3015,9 @@ public class ServiceConfiguration implements PulsarConfiguration {
         this.loadBalancerConfiguration.setLoadManagerClassName(name);
     }
 
+    public String getLoadManagerClassName() {
+        return this.loadBalancerConfiguration.getLoadManagerClassName();
+    }
     public void setLoadBalancerEnabled(boolean enabled) {
         this.loadBalancerConfiguration.setLoadBalancerEnabled(enabled);
     }

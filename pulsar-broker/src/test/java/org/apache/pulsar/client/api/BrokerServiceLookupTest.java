@@ -779,7 +779,7 @@ public class BrokerServiceLookupTest extends ProducerConsumerBase {
                 assertNotEquals(bundleInBroker1AfterSplit.toString(), unsplitBundle);
             });
         } finally {
-            conf.getLoadBalancerConfiguration().setLoadManagerClassName(loadBalancerName);
+            conf.setLoadManagerClassName(loadBalancerName);
         }
     }
 

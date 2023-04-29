@@ -733,14 +733,14 @@ public class AdminApi2Test extends MockedPulsarServiceBaseTest {
     @Test
     public void testLoadReportApi() throws Exception {
 
-        this.conf.getLoadBalancerConfiguration().setLoadManagerClassName(SimpleLoadManagerImpl.class.getName());
+        this.conf.setLoadManagerClassName(SimpleLoadManagerImpl.class.getName());
         @Cleanup("cleanup")
         MockedPulsarService mockPulsarSetup1 = new MockedPulsarService(this.conf);
         mockPulsarSetup1.setup();
         PulsarAdmin simpleLoadManagerAdmin = mockPulsarSetup1.getAdmin();
         assertNotNull(simpleLoadManagerAdmin.brokerStats().getLoadReport());
 
-        this.conf.getLoadBalancerConfiguration().setLoadManagerClassName(ModularLoadManagerImpl.class.getName());
+        this.conf.setLoadManagerClassName(ModularLoadManagerImpl.class.getName());
         @Cleanup("cleanup")
         MockedPulsarService mockPulsarSetup2 = new MockedPulsarService(this.conf);
         mockPulsarSetup2.setup();

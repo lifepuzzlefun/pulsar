@@ -151,7 +151,7 @@ public class ModularLoadManagerImplTest {
 
         // Start broker 1
         ServiceConfiguration config1 = new ServiceConfiguration();
-        config1.getLoadBalancerConfiguration().setLoadManagerClassName(ModularLoadManagerImpl.class.getName());
+        config1.setLoadManagerClassName(ModularLoadManagerImpl.class.getName());
         config1.getLoadBalancerConfiguration().setLoadBalancerLoadSheddingStrategy("org.apache.pulsar.broker.loadbalance.impl.OverloadShedder");
         config1.setClusterName("use");
         config1.setWebServicePort(Optional.of(0));
@@ -172,7 +172,7 @@ public class ModularLoadManagerImplTest {
 
         // Start broker 2
         ServiceConfiguration config2 = new ServiceConfiguration();
-        config2.getLoadBalancerConfiguration().setLoadManagerClassName(ModularLoadManagerImpl.class.getName());
+        config2.setLoadManagerClassName(ModularLoadManagerImpl.class.getName());
         config2.getLoadBalancerConfiguration().setLoadBalancerLoadSheddingStrategy("org.apache.pulsar.broker.loadbalance.impl.OverloadShedder");
         config2.setClusterName("use");
         config2.setWebServicePort(Optional.of(0));
@@ -187,7 +187,7 @@ public class ModularLoadManagerImplTest {
         pulsar2.start();
 
         ServiceConfiguration config = new ServiceConfiguration();
-        config.getLoadBalancerConfiguration().setLoadManagerClassName(ModularLoadManagerImpl.class.getName());
+        config.setLoadManagerClassName(ModularLoadManagerImpl.class.getName());
         config.getLoadBalancerConfiguration().setLoadBalancerLoadSheddingStrategy("org.apache.pulsar.broker.loadbalance.impl.OverloadShedder");
         config.setClusterName("use");
         config.setWebServicePort(Optional.of(0));
@@ -709,7 +709,7 @@ public class ModularLoadManagerImplTest {
     public void testOwnBrokerZnodeByMultipleBroker() throws Exception {
 
         ServiceConfiguration config = new ServiceConfiguration();
-        config.getLoadBalancerConfiguration().setLoadManagerClassName(ModularLoadManagerImpl.class.getName());
+        config.setLoadManagerClassName(ModularLoadManagerImpl.class.getName());
         config.setClusterName("use");
         config.setWebServicePort(Optional.of(0));
         config.setMetadataStoreUrl("zk:127.0.0.1:" + bkEnsemble.getZookeeperPort());

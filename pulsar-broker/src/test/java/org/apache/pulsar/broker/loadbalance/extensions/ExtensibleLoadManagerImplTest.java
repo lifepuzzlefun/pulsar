@@ -130,7 +130,7 @@ public class ExtensibleLoadManagerImplTest extends MockedPulsarServiceBaseTest {
     public void setup() throws Exception {
         conf.setForceDeleteNamespaceAllowed(true);
         conf.setAllowAutoTopicCreation(true);
-        conf.getLoadBalancerConfiguration().setLoadManagerClassName(ExtensibleLoadManagerImpl.class.getName());
+        conf.setLoadManagerClassName(ExtensibleLoadManagerImpl.class.getName());
         conf.getLoadBalancerConfiguration().setLoadBalancerLoadSheddingStrategy(TransferShedder.class.getName());
         conf.getLoadBalancerConfiguration().setLoadBalancerSheddingEnabled(false);
         conf.getLoadBalancerConfiguration().setLoadBalancerDebugModeEnabled(true);
@@ -139,7 +139,7 @@ public class ExtensibleLoadManagerImplTest extends MockedPulsarServiceBaseTest {
         ServiceConfiguration defaultConf = getDefaultConf();
         defaultConf.setAllowAutoTopicCreation(true);
         defaultConf.setForceDeleteNamespaceAllowed(true);
-        defaultConf.getLoadBalancerConfiguration().setLoadManagerClassName(ExtensibleLoadManagerImpl.class.getName());
+        defaultConf.setLoadManagerClassName(ExtensibleLoadManagerImpl.class.getName());
         defaultConf.getLoadBalancerConfiguration().setLoadBalancerLoadSheddingStrategy(TransferShedder.class.getName());
         defaultConf.getLoadBalancerConfiguration().setLoadBalancerSheddingEnabled(false);
         additionalPulsarTestContext = createAdditionalPulsarTestContext(defaultConf);
@@ -478,7 +478,7 @@ public class ExtensibleLoadManagerImplTest extends MockedPulsarServiceBaseTest {
         ServiceConfiguration defaultConf = getDefaultConf();
         defaultConf.setAllowAutoTopicCreation(true);
         defaultConf.setForceDeleteNamespaceAllowed(true);
-        defaultConf.getLoadBalancerConfiguration().setLoadManagerClassName(ModularLoadManagerImpl.class.getName());
+        defaultConf.setLoadManagerClassName(ModularLoadManagerImpl.class.getName());
         defaultConf.getLoadBalancerConfiguration().setLoadBalancerSheddingEnabled(false);
         try (var additionalPulsarTestContext = createAdditionalPulsarTestContext(defaultConf)) {
             // start pulsar3 with old load manager
@@ -518,7 +518,7 @@ public class ExtensibleLoadManagerImplTest extends MockedPulsarServiceBaseTest {
             ServiceConfiguration conf = getDefaultConf();
             conf.setAllowAutoTopicCreation(true);
             conf.setForceDeleteNamespaceAllowed(true);
-            conf.getLoadBalancerConfiguration().setLoadManagerClassName(ExtensibleLoadManagerImpl.class.getName());
+            conf.setLoadManagerClassName(ExtensibleLoadManagerImpl.class.getName());
             conf.getLoadBalancerConfiguration().setLoadBalancerLoadSheddingStrategy(TransferShedder.class.getName());
             try (var additionPulsarTestContext = createAdditionalPulsarTestContext(conf)) {
                 var pulsar4 = additionPulsarTestContext.getPulsarService();

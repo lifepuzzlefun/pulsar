@@ -1742,7 +1742,7 @@ public class AdminApiTest extends MockedPulsarServiceBaseTest {
     @Test
     public void testNamespaceSplitBundleWithDefaultTopicCountEquallyDivideAlgorithm() throws Exception {
         cleanup();
-        setupConfigAndStart(conf -> conf
+        setupConfigAndStart(conf -> conf.getLoadBalancerConfiguration()
                 .setDefaultNamespaceBundleSplitAlgorithm(NamespaceBundleSplitAlgorithm.TOPIC_COUNT_EQUALLY_DIVIDE));
 
         // Force to create a topic

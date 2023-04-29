@@ -26,7 +26,7 @@ import java.util.Set;
 import org.apache.commons.lang3.mutable.MutableBoolean;
 import org.apache.commons.lang3.mutable.MutableDouble;
 import org.apache.commons.lang3.tuple.Pair;
-import org.apache.pulsar.broker.configuration.LoadBalancerConfiguration;
+import org.apache.pulsar.broker.ServiceConfiguration;
 import org.apache.pulsar.broker.loadbalance.LoadData;
 import org.apache.pulsar.broker.loadbalance.LoadSheddingStrategy;
 import org.apache.pulsar.policies.data.loadbalancer.BrokerData;
@@ -61,13 +61,14 @@ public class ThresholdShedder implements LoadSheddingStrategy {
 
     @Override
     public synchronized Multimap<String, String> findBundlesForUnloading(final LoadData loadData,
-                                                                         final LoadBalancerConfiguration conf) {
+                                                                         final ServiceConfiguration conf) {
         selectedBundlesCache.clear();
-        final double threshold = conf.getLoadBalancerBrokerThresholdShedderPercentage() / 100.0;
+        var loadBalancerConfiguration = conf.getLoadBalancerConfiguration();
+        final double threshold = loadBalancerConfiguration.getLoadBalancerBrokerThresholdShedderPercentage() / 100.0;
         final Map<String, Long> recentlyUnloadedBundles = loadData.getRecentlyUnloadedBundles();
-        final double minThroughputThreshold = conf.getLoadBalancerBundleUnloadMinThroughputThreshold() * MB;
+        final double minThroughputThreshold = loadBalancerConfiguration.getLoadBalancerBundleUnloadMinThroughputThreshold() * MB;
 
-        final double avgUsage = getBrokerAvgUsage(loadData, conf.getLoadBalancerHistoryResourcePercentage(), conf);
+        final double avgUsage = getBrokerAvgUsage(loadData, loadBalancerConfiguration.getLoadBalancerHistoryResourcePercentage(), conf);
 
         if (avgUsage == 0) {
             log.warn("average max resource usage is 0");
@@ -115,7 +116,7 @@ public class ThresholdShedder implements LoadSheddingStrategy {
                 log.warn("Broker {} is overloaded despite having no bundles", broker);
             }
         });
-        if (selectedBundlesCache.isEmpty() && conf.isLowerBoundarySheddingEnabled()) {
+        if (selectedBundlesCache.isEmpty() && loadBalancerConfiguration.isLowerBoundarySheddingEnabled()) {
             tryLowerBoundaryShedding(loadData, conf);
         }
         return selectedBundlesCache;
@@ -149,7 +150,7 @@ public class ThresholdShedder implements LoadSheddingStrategy {
     }
 
     private double getBrokerAvgUsage(final LoadData loadData, final double historyPercentage,
-                                     final LoadBalancerConfiguration conf) {
+                                     final ServiceConfiguration conf) {
         double totalUsage = 0.0;
         int totalBrokers = 0;
 
@@ -164,14 +165,15 @@ public class ThresholdShedder implements LoadSheddingStrategy {
     }
 
     private double updateAvgResourceUsage(String broker, LocalBrokerData localBrokerData,
-                                          final double historyPercentage, final LoadBalancerConfiguration conf) {
+                                          final double historyPercentage, final ServiceConfiguration conf) {
         Double historyUsage =
                 brokerAvgResourceUsage.get(broker);
+        var loadBalancerConfiguration = conf.getLoadBalancerConfiguration();
         double resourceUsage = localBrokerData.getMaxResourceUsageWithWeight(
-                conf.getLoadBalancerCPUResourceWeight(),
-                conf.getLoadBalancerDirectMemoryResourceWeight(),
-                conf.getLoadBalancerBandwithInResourceWeight(),
-                conf.getLoadBalancerBandwithOutResourceWeight());
+                loadBalancerConfiguration.getLoadBalancerCPUResourceWeight(),
+                loadBalancerConfiguration.getLoadBalancerDirectMemoryResourceWeight(),
+                loadBalancerConfiguration.getLoadBalancerBandwithInResourceWeight(),
+                loadBalancerConfiguration.getLoadBalancerBandwithOutResourceWeight());
         historyUsage = historyUsage == null
                 ? resourceUsage : historyUsage * historyPercentage + (1 - historyPercentage) * resourceUsage;
 
@@ -179,10 +181,12 @@ public class ThresholdShedder implements LoadSheddingStrategy {
         return historyUsage;
     }
 
-    private void tryLowerBoundaryShedding(LoadData loadData, LoadBalancerConfiguration conf) {
+    private void tryLowerBoundaryShedding(LoadData loadData, ServiceConfiguration conf) {
+        var loadBalancerConfig = conf.getLoadBalancerConfiguration();
         // Select the broker with the most resource usage.
-        final double threshold = conf.getLoadBalancerBrokerThresholdShedderPercentage() / 100.0;
-        final double avgUsage = getBrokerAvgUsage(loadData, conf.getLoadBalancerHistoryResourcePercentage(), conf);
+        final double threshold = loadBalancerConfig.getLoadBalancerBrokerThresholdShedderPercentage() / 100.0;
+        final double avgUsage = getBrokerAvgUsage(loadData,
+                loadBalancerConfig.getLoadBalancerHistoryResourcePercentage(), conf);
         Pair<Boolean, String> result = getMaxUsageBroker(loadData, threshold, avgUsage);
         boolean hasBrokerBelowLowerBound = result.getLeft();
         String maxUsageBroker = result.getRight();
@@ -201,7 +205,7 @@ public class ThresholdShedder implements LoadSheddingStrategy {
         LocalBrokerData localData = brokerData.getLocalData();
         double brokerCurrentThroughput = localData.getMsgThroughputIn() + localData.getMsgThroughputOut();
         double minimumThroughputToOffload = brokerCurrentThroughput * threshold * LOWER_BOUNDARY_THRESHOLD_MARGIN;
-        double minThroughputThreshold = conf.getLoadBalancerBundleUnloadMinThroughputThreshold() * MB;
+        double minThroughputThreshold = loadBalancerConfig.getLoadBalancerBundleUnloadMinThroughputThreshold() * MB;
         if (minThroughputThreshold > minimumThroughputToOffload) {
             log.info("broker {} in lower boundary shedding is planning to shed throughput {} MByte/s less than "
                             + "minimumThroughputThreshold {} MByte/s, skipping bundle unload.",

@@ -3006,4 +3006,16 @@ public class ServiceConfiguration implements PulsarConfiguration {
                                    MIN_ML_CACHE_EVICTION_FREQUENCY))
                 : Math.min(MAX_ML_CACHE_EVICTION_INTERVAL_MS, managedLedgerCacheEvictionIntervalMs);
     }
+
+    public void setLoadBalancerOverrideBrokerNicSpeedGbps(Optional<Double> v) {
+        this.loadBalancerConfiguration.setLoadBalancerOverrideBrokerNicSpeedGbps(v);
+    }
+
+    public void setLoadManagerClassName(String name) {
+        this.loadBalancerConfiguration.setLoadManagerClassName(name);
+    }
+
+    public void setLoadBalancerEnabled(boolean enabled) {
+        this.loadBalancerConfiguration.setLoadBalancerEnabled(enabled);
+    }
 }

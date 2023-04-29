@@ -41,7 +41,7 @@ public class OverloadShedderTest {
 
     public OverloadShedderTest() {
         conf = new ServiceConfiguration();
-        conf.setLoadBalancerBrokerOverloadedThresholdPercentage(85);
+        conf.getLoadBalancerConfiguration().setLoadBalancerBrokerOverloadedThresholdPercentage(85);
     }
 
     @Test

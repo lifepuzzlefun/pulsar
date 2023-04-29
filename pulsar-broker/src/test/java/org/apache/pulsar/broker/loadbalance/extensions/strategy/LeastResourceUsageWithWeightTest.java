@@ -193,13 +193,15 @@ public class LeastResourceUsageWithWeightTest {
     public static LoadManagerContext getContext() {
         var ctx = mock(LoadManagerContext.class);
         var conf = new ServiceConfiguration();
-        conf.setLoadBalancerCPUResourceWeight(1.0);
-        conf.setLoadBalancerMemoryResourceWeight(0.1);
-        conf.setLoadBalancerDirectMemoryResourceWeight(0.1);
-        conf.setLoadBalancerBandwithInResourceWeight(1.0);
-        conf.setLoadBalancerBandwithOutResourceWeight(1.0);
-        conf.setLoadBalancerHistoryResourcePercentage(0.5);
-        conf.setLoadBalancerAverageResourceUsageDifferenceThresholdPercentage(5);
+        var loadbalancerConf = conf.getLoadBalancerConfiguration();
+
+        loadbalancerConf.setLoadBalancerCPUResourceWeight(1.0);
+        loadbalancerConf.setLoadBalancerMemoryResourceWeight(0.1);
+        loadbalancerConf.setLoadBalancerDirectMemoryResourceWeight(0.1);
+        loadbalancerConf.setLoadBalancerBandwithInResourceWeight(1.0);
+        loadbalancerConf.setLoadBalancerBandwithOutResourceWeight(1.0);
+        loadbalancerConf.setLoadBalancerHistoryResourcePercentage(0.5);
+        loadbalancerConf.setLoadBalancerAverageResourceUsageDifferenceThresholdPercentage(5);
         var brokerLoadDataStore = new LoadDataStore<BrokerLoadData>() {
             Map<String, BrokerLoadData> map = new HashMap<>();
             @Override

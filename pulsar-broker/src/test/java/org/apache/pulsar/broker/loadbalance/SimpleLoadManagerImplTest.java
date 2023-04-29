@@ -391,7 +391,8 @@ public class SimpleLoadManagerImplTest {
         pulsar1.getBrokerService().getBundlesQuotas().setResourceQuota(bundles[0], quota).join();
         int numAssignedToPrimary = 0;
         int numAssignedToSecondary = 0;
-        pulsar1.getConfiguration().setLoadBalancerPlacementStrategy(SimpleLoadManagerImpl.LOADBALANCER_STRATEGY_LLS);
+        pulsar1.getConfiguration().getLoadBalancerConfiguration()
+                .setLoadBalancerPlacementStrategy(SimpleLoadManagerImpl.LOADBALANCER_STRATEGY_LLS);
         final SimpleLoadManagerImpl loadManager = (SimpleLoadManagerImpl) pulsar1.getLoadManager().get();
 
         for (final NamespaceBundle bundle : bundles) {

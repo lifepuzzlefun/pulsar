@@ -24,7 +24,7 @@ import java.util.Map;
 import org.apache.commons.lang3.mutable.MutableBoolean;
 import org.apache.commons.lang3.mutable.MutableDouble;
 import org.apache.commons.lang3.tuple.Pair;
-import org.apache.pulsar.broker.configuration.LoadBalancerConfiguration;
+import org.apache.pulsar.broker.ServiceConfiguration;
 import org.apache.pulsar.broker.loadbalance.LoadData;
 import org.apache.pulsar.broker.loadbalance.LoadSheddingStrategy;
 import org.apache.pulsar.policies.data.loadbalancer.BundleData;
@@ -63,9 +63,10 @@ public class OverloadShedder implements LoadSheddingStrategy {
      */
     @Override
     public Multimap<String, String> findBundlesForUnloading(final LoadData loadData,
-                                                            final LoadBalancerConfiguration conf) {
+                                                            final ServiceConfiguration conf) {
         selectedBundlesCache.clear();
-        final double overloadThreshold = conf.getLoadBalancerBrokerOverloadedThresholdPercentage() / 100.0;
+        final double overloadThreshold = conf.getLoadBalancerConfiguration()
+                .getLoadBalancerBrokerOverloadedThresholdPercentage() / 100.0;
         final Map<String, Long> recentlyUnloadedBundles = loadData.getRecentlyUnloadedBundles();
 
         // Check every broker and select

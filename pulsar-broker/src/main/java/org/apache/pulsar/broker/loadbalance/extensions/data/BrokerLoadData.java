@@ -25,6 +25,7 @@ import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
+import org.apache.pulsar.broker.ServiceConfiguration;
 import org.apache.pulsar.broker.configuration.LoadBalancerConfiguration;
 import org.apache.pulsar.common.stats.Metrics;
 import org.apache.pulsar.policies.data.loadbalancer.LocalBrokerData;
@@ -117,7 +118,7 @@ public class BrokerLoadData {
                        double msgRateOut,
                        int bundleCount,
                        int topics,
-                       LoadBalancerConfiguration conf) {
+                       ServiceConfiguration conf) {
         updateSystemResourceUsage(usage.cpu, usage.memory, usage.directMemory, usage.bandwidthIn, usage.bandwidthOut);
         this.msgThroughputIn = msgThroughputIn;
         this.msgThroughputOut = msgThroughputOut;
@@ -161,10 +162,10 @@ public class BrokerLoadData {
         this.bandwidthOut = bandwidthOut;
     }
 
-    private void updateFeatures(LoadBalancerConfiguration conf) {
+    private void updateFeatures(ServiceConfiguration conf) {
         updateMaxResourceUsage();
-        updateWeightedMaxEMA(conf);
-        updateMsgThroughputEMA(conf);
+        updateWeightedMaxEMA(conf.getLoadBalancerConfiguration());
+        updateMsgThroughputEMA(conf.getLoadBalancerConfiguration());
     }
 
     private void updateMaxResourceUsage() {

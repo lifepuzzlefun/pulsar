@@ -57,7 +57,7 @@ public class ThresholdShedderTest {
     @Test
     public void testNoBrokers() {
         LoadData loadData = new LoadData();
-        assertTrue(thresholdShedder.findBundlesForUnloading(loadData, conf.getLoadBalancerConfiguration()).isEmpty());
+        assertTrue(thresholdShedder.findBundlesForUnloading(loadData, conf).isEmpty());
     }
 
     @Test
@@ -70,7 +70,7 @@ public class ThresholdShedderTest {
         HashSet<String> activeBrokers = new HashSet<>();
         activeBrokers.add("leader");
         thresholdShedder.onActiveBrokersChange(activeBrokers);
-        thresholdShedder.findBundlesForUnloading(new LoadData(), conf.getLoadBalancerConfiguration());
+        thresholdShedder.findBundlesForUnloading(new LoadData(), conf);
         map = (Map<String, Double>) field.get(thresholdShedder);
         assertTrue(map.isEmpty());
     }
@@ -84,7 +84,7 @@ public class ThresholdShedderTest {
         broker1.setBandwidthOut(new ResourceUsage(999, 1000));
         loadData.getBrokerData().put("broker-1", new BrokerData(broker1));
 
-        assertTrue(thresholdShedder.findBundlesForUnloading(loadData, conf.getLoadBalancerConfiguration()).isEmpty());
+        assertTrue(thresholdShedder.findBundlesForUnloading(loadData, conf).isEmpty());
     }
 
     @Test
@@ -104,7 +104,7 @@ public class ThresholdShedderTest {
         loadData.getBundleData().put("bundle-1", bundleData);
 
         loadData.getBrokerData().put("broker-1", new BrokerData(broker1));
-        assertTrue(thresholdShedder.findBundlesForUnloading(loadData, conf.getLoadBalancerConfiguration()).isEmpty());
+        assertTrue(thresholdShedder.findBundlesForUnloading(loadData, conf).isEmpty());
     }
 
     @Test
@@ -138,7 +138,7 @@ public class ThresholdShedderTest {
         loadData.getBrokerData().put("broker-2", new BrokerData(broker1));
         loadData.getBrokerData().put("broker-3", new BrokerData(broker2));
 
-        assertFalse(thresholdShedder.findBundlesForUnloading(loadData, conf.getLoadBalancerConfiguration()).isEmpty());
+        assertFalse(thresholdShedder.findBundlesForUnloading(loadData, conf).isEmpty());
     }
 
     @Test
@@ -159,7 +159,7 @@ public class ThresholdShedderTest {
 
         loadData.getBrokerData().put("broker-1", new BrokerData(broker1));
 
-        assertTrue(thresholdShedder.findBundlesForUnloading(loadData, conf.getLoadBalancerConfiguration()).isEmpty());
+        assertTrue(thresholdShedder.findBundlesForUnloading(loadData, conf).isEmpty());
     }
 
     @Test
@@ -204,7 +204,7 @@ public class ThresholdShedderTest {
         loadData.getBrokerData().put("broker-1", new BrokerData(broker1));
         loadData.getBrokerData().put(broker2Name, new BrokerData(broker2));
 
-        Multimap<String, String> bundlesToUnload = thresholdShedder.findBundlesForUnloading(loadData, conf.getLoadBalancerConfiguration());
+        Multimap<String, String> bundlesToUnload = thresholdShedder.findBundlesForUnloading(loadData, conf);
         assertFalse(bundlesToUnload.isEmpty());
         assertEquals(bundlesToUnload.get("broker-1"),
             List.of("bundle-10", "bundle-9", "bundle-8"));
@@ -252,7 +252,7 @@ public class ThresholdShedderTest {
         loadData.getRecentlyUnloadedBundles().put("bundle-10", 1L);
         loadData.getRecentlyUnloadedBundles().put("bundle-9", 1L);
 
-        Multimap<String, String> bundlesToUnload = thresholdShedder.findBundlesForUnloading(loadData, conf.getLoadBalancerConfiguration());
+        Multimap<String, String> bundlesToUnload = thresholdShedder.findBundlesForUnloading(loadData, conf);
         assertFalse(bundlesToUnload.isEmpty());
         assertEquals(bundlesToUnload.get("broker-1"),
             List.of("bundle-8", "bundle-7", "bundle-6", "bundle-5"));
@@ -302,12 +302,10 @@ public class ThresholdShedderTest {
             loadData.getBrokerData().put("broker-" + i, new BrokerData(broker));
         }
         ThresholdShedder shedder = new ThresholdShedder();
-        Multimap<String, String> bundlesToUnload = shedder.findBundlesForUnloading(loadData,
-                conf.getLoadBalancerConfiguration());
+        Multimap<String, String> bundlesToUnload = shedder.findBundlesForUnloading(loadData, conf);
         assertTrue(bundlesToUnload.isEmpty());
         conf.getLoadBalancerConfiguration().setLowerBoundarySheddingEnabled(true);
-        bundlesToUnload = thresholdShedder.findBundlesForUnloading(loadData,
-                conf.getLoadBalancerConfiguration());
+        bundlesToUnload = thresholdShedder.findBundlesForUnloading(loadData, conf);
         assertFalse(bundlesToUnload.isEmpty());
     }
 
@@ -338,12 +336,10 @@ public class ThresholdShedderTest {
             loadData.getBrokerData().put("broker-" + i, new BrokerData(broker));
         }
         ThresholdShedder shedder = new ThresholdShedder();
-        Multimap<String, String> bundlesToUnload = shedder.findBundlesForUnloading(loadData,
-                conf.getLoadBalancerConfiguration());
+        Multimap<String, String> bundlesToUnload = shedder.findBundlesForUnloading(loadData, conf);
         assertTrue(bundlesToUnload.isEmpty());
         conf.getLoadBalancerConfiguration().setLowerBoundarySheddingEnabled(true);
-        bundlesToUnload = thresholdShedder.findBundlesForUnloading(loadData,
-                conf.getLoadBalancerConfiguration());
+        bundlesToUnload = thresholdShedder.findBundlesForUnloading(loadData, conf);
         assertTrue(bundlesToUnload.isEmpty());
     }
 
@@ -377,11 +373,10 @@ public class ThresholdShedderTest {
             loadData.getBrokerData().put("broker-" + i, new BrokerData(broker));
         }
         ThresholdShedder shedder = new ThresholdShedder();
-        Multimap<String, String> bundlesToUnload = shedder.findBundlesForUnloading(loadData,
-                conf.getLoadBalancerConfiguration());
+        Multimap<String, String> bundlesToUnload = shedder.findBundlesForUnloading(loadData, conf);
         assertTrue(bundlesToUnload.isEmpty());
         conf.getLoadBalancerConfiguration().setLowerBoundarySheddingEnabled(true);
-        bundlesToUnload = thresholdShedder.findBundlesForUnloading(loadData, conf.getLoadBalancerConfiguration());
+        bundlesToUnload = thresholdShedder.findBundlesForUnloading(loadData, conf);
         assertFalse(bundlesToUnload.isEmpty());
         assertEquals(bundlesToUnload.size(), 1);
         assertTrue(bundlesToUnload.containsKey("broker-3"));

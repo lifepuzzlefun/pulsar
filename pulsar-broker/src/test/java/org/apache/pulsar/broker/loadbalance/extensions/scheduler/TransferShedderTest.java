@@ -270,10 +270,10 @@ public class TransferShedderTest {
                     .get(broker).get()
                     .getTopBundlesLoadData().stream().mapToDouble(v -> v.stats().msgThroughputOut).sum();
             loadData.update(usage1, 1, throughputOut, 3, 4, 5, 6,
-                    ctx.loadbalancerConfiguration());
+                    ctx.brokerConfiguration());
         } else {
             loadData.update(usage1, 1, 2, 3, 4, 5, 6,
-                    ctx.loadbalancerConfiguration());
+                    ctx.brokerConfiguration());
         }
         return loadData;
     }

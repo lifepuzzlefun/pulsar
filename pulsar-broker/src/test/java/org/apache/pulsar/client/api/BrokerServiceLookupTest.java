@@ -144,7 +144,7 @@ public class BrokerServiceLookupTest extends ProducerConsumerBase {
         /**** start broker-2 ****/
         ServiceConfiguration conf2 = new ServiceConfiguration();
         conf2.setBrokerShutdownTimeoutMs(0L);
-        conf2.getLoadBalancerConfiguration().setLoadBalancerOverrideBrokerNicSpeedGbps(Optional.of(1.0d));
+        conf2.setLoadBalancerOverrideBrokerNicSpeedGbps(Optional.of(1.0d));
         conf2.setBrokerServicePort(Optional.of(0));
         conf2.setWebServicePort(Optional.of(0));
         conf2.setAdvertisedAddress("localhost");
@@ -262,7 +262,7 @@ public class BrokerServiceLookupTest extends ProducerConsumerBase {
         ServiceConfiguration conf2 = new ServiceConfiguration();
         conf2.setAdvertisedAddress("localhost");
         conf2.setBrokerShutdownTimeoutMs(0L);
-        conf2.getLoadBalancerConfiguration().setLoadBalancerOverrideBrokerNicSpeedGbps(Optional.of(1.0d));
+        conf2.setLoadBalancerOverrideBrokerNicSpeedGbps(Optional.of(1.0d));
         conf2.setBrokerServicePort(Optional.of(0));
         conf2.setWebServicePort(Optional.of(0));
         conf2.setAdvertisedAddress("localhost");
@@ -357,7 +357,7 @@ public class BrokerServiceLookupTest extends ProducerConsumerBase {
         ServiceConfiguration conf2 = new ServiceConfiguration();
         conf2.setAdvertisedAddress("localhost");
         conf2.setBrokerShutdownTimeoutMs(0L);
-        conf2.getLoadBalancerConfiguration().setLoadBalancerOverrideBrokerNicSpeedGbps(Optional.of(1.0d));
+        conf2.setLoadBalancerOverrideBrokerNicSpeedGbps(Optional.of(1.0d));
         conf2.setBrokerServicePort(Optional.of(0));
         conf2.setWebServicePort(Optional.of(0));
         conf2.setAdvertisedAddress("localhost");
@@ -435,7 +435,7 @@ public class BrokerServiceLookupTest extends ProducerConsumerBase {
         /**** start broker-2 ****/
         ServiceConfiguration conf2 = new ServiceConfiguration();
         conf2.setBrokerShutdownTimeoutMs(0L);
-        conf2.getLoadBalancerConfiguration().setLoadBalancerOverrideBrokerNicSpeedGbps(Optional.of(1.0d));
+        conf2.setLoadBalancerOverrideBrokerNicSpeedGbps(Optional.of(1.0d));
         conf2.setAdvertisedAddress("localhost");
         conf2.setBrokerShutdownTimeoutMs(0L);
         conf2.setBrokerServicePort(Optional.of(0));
@@ -553,7 +553,7 @@ public class BrokerServiceLookupTest extends ProducerConsumerBase {
         ServiceConfiguration conf2 = new ServiceConfiguration();
         conf2.setAdvertisedAddress("localhost");
         conf2.setBrokerShutdownTimeoutMs(0L);
-        conf2.getLoadBalancerConfiguration().setLoadBalancerOverrideBrokerNicSpeedGbps(Optional.of(1.0d));
+        conf2.setLoadBalancerOverrideBrokerNicSpeedGbps(Optional.of(1.0d));
         conf2.setBrokerServicePort(Optional.of(0));
         conf2.setWebServicePort(Optional.of(0));
         conf2.setAdvertisedAddress("localhost");
@@ -659,14 +659,14 @@ public class BrokerServiceLookupTest extends ProducerConsumerBase {
             // (1) Start broker-1
             ServiceConfiguration conf2 = new ServiceConfiguration();
             conf2.setBrokerShutdownTimeoutMs(0L);
-            conf2.getLoadBalancerConfiguration().setLoadBalancerOverrideBrokerNicSpeedGbps(Optional.of(1.0d));
+            conf2.setLoadBalancerOverrideBrokerNicSpeedGbps(Optional.of(1.0d));
             conf2.setAdvertisedAddress("localhost");
             conf2.setBrokerShutdownTimeoutMs(0L);
             conf2.setBrokerServicePort(Optional.of(0));
             conf2.setWebServicePort(Optional.of(0));
             conf2.setAdvertisedAddress("localhost");
             conf2.setClusterName(conf.getClusterName());
-            conf2.getLoadBalancerConfiguration().setLoadManagerClassName(ModularLoadManagerImpl.class.getName());
+            conf2.setLoadManagerClassName(ModularLoadManagerImpl.class.getName());
             conf2.setMetadataStoreUrl("zk:localhost:2181");
             conf2.setConfigurationMetadataStoreUrl("zk:localhost:3181");
             conf2.getLoadBalancerConfiguration().setLoadBalancerAutoBundleSplitEnabled(true);
@@ -675,7 +675,7 @@ public class BrokerServiceLookupTest extends ProducerConsumerBase {
 
             // configure broker-1 with ModularLoadManager
             stopBroker();
-            conf.getLoadBalancerConfiguration().setLoadManagerClassName(ModularLoadManagerImpl.class.getName());
+            conf.setLoadManagerClassName(ModularLoadManagerImpl.class.getName());
             startBroker();
 
             @Cleanup
@@ -800,7 +800,7 @@ public class BrokerServiceLookupTest extends ProducerConsumerBase {
             stopBroker();
             conf.setDefaultNumberOfNamespaceBundles(1);
             conf.getLoadBalancerConfiguration().setLoadBalancerNamespaceBundleMaxTopics(1);
-            conf.getLoadBalancerConfiguration().setLoadManagerClassName(ModularLoadManagerImpl.class.getName());
+            conf.setLoadManagerClassName(ModularLoadManagerImpl.class.getName());
             startBroker();
             final ModularLoadManagerWrapper modularLoadManagerWrapper =
                     (ModularLoadManagerWrapper) pulsar.getLoadManager().get();
@@ -836,7 +836,7 @@ public class BrokerServiceLookupTest extends ProducerConsumerBase {
         } finally {
             conf.setDefaultNumberOfNamespaceBundles(defaultNumberOfNamespaceBundles);
             conf.getLoadBalancerConfiguration().setLoadBalancerNamespaceBundleMaxTopics(loadBalancerNamespaceBundleMaxTopics);
-            conf.getLoadBalancerConfiguration().setLoadManagerClassName(loadBalancerName);
+            conf.setLoadManagerClassName(loadBalancerName);
         }
     }
 

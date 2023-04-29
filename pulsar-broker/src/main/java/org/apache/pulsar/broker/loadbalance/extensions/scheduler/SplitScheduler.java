@@ -103,7 +103,7 @@ public class SplitScheduler implements LoadManagerScheduler {
 
     @Override
     public void execute() {
-        boolean debugMode = ExtensibleLoadManagerImpl.debug(loadBalancerConfiguration, log);
+        boolean debugMode = ExtensibleLoadManagerImpl.debug(conf, log);
         if (debugMode) {
             log.info("Load balancer enabled: {}, Split enabled: {}.",
                     loadBalancerConfiguration.isLoadBalancerEnabled(),
@@ -164,7 +164,7 @@ public class SplitScheduler implements LoadManagerScheduler {
         task = loadManagerExecutor.scheduleAtFixedRate(() -> {
             try {
                 execute();
-                var debugMode = ExtensibleLoadManagerImpl.debug(loadBalancerConfiguration, log);
+                var debugMode = ExtensibleLoadManagerImpl.debug(conf, log);
                 if (debugMode) {
                     StringJoiner joiner = new StringJoiner("\n");
                     joiner.add("### OwnershipEntrySet start ###");

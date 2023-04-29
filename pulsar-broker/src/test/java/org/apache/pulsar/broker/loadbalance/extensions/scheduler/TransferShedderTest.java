@@ -1267,7 +1267,7 @@ public class TransferShedderTest {
             TransferShedder.LoadStats stats = new TransferShedder.LoadStats();
             var loadStore = ctx.brokerLoadDataStore();
             stats.setLoadDataStore(loadStore);
-            var conf = ctx.loadbalancerConfiguration();
+            var conf = ctx.brokerConfiguration();
             double[] loads = new double[numBrokers];
             final Map<String, BrokerLookupData> availableBrokers = new HashMap<>();
             for (int i = 0; i < loads.length; i++) {
@@ -1282,7 +1282,8 @@ public class TransferShedderTest {
             int i = 0;
             int j = loads.length - 1;
             Arrays.sort(loads);
-            for (int k = 0; k < conf.getLoadBalancerMaxNumberOfBrokerSheddingPerCycle(); k++) {
+            for (int k = 0; k < conf.getLoadBalancerConfiguration()
+                    .getLoadBalancerMaxNumberOfBrokerSheddingPerCycle(); k++) {
                 double minLoad = loads[i];
                 double maxLoad = loads[j];
                 double offload = (maxLoad - minLoad) / 2;
@@ -1309,7 +1310,7 @@ public class TransferShedderTest {
         TransferShedder.LoadStats stats = new TransferShedder.LoadStats();
         var loadStore = ctx.brokerLoadDataStore();
         stats.setLoadDataStore(loadStore);
-        var conf = ctx.loadbalancerConfiguration();
+        var conf = ctx.brokerConfiguration();
         final Map<String, BrokerLookupData> availableBrokers = new HashMap<>();
         for (int i = 0; i < loads.length; i++) {
             availableBrokers.put("broker" + i, mock(BrokerLookupData.class));
@@ -1328,7 +1329,7 @@ public class TransferShedderTest {
         TransferShedder.LoadStats stats = new TransferShedder.LoadStats();
         var loadStore = ctx.brokerLoadDataStore();
         stats.setLoadDataStore(loadStore);
-        var conf = ctx.loadbalancerConfiguration();
+        var conf = ctx.brokerConfiguration();
         final Map<String, BrokerLookupData> availableBrokers = new HashMap<>();
         for (int i = 0; i < loads.length; i++) {
             availableBrokers.put("broker" + i, mock(BrokerLookupData.class));

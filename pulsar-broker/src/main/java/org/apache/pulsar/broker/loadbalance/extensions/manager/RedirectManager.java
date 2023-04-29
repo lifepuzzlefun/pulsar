@@ -69,7 +69,7 @@ public class RedirectManager {
 
     public CompletableFuture<Optional<LookupResult>> findRedirectLookupResultAsync() {
         String currentLMClassName = pulsar.getLoadBalancerConfiguration().getLoadManagerClassName();
-        boolean debug = ExtensibleLoadManagerImpl.debug(pulsar.getLoadBalancerConfiguration(), log);
+        boolean debug = ExtensibleLoadManagerImpl.debug(pulsar.getConfig(), log);
         return getAvailableBrokerLookupDataAsync().thenApply(lookupDataMap -> {
             if (lookupDataMap.isEmpty()) {
                 String errorMsg = "No available broker found.";

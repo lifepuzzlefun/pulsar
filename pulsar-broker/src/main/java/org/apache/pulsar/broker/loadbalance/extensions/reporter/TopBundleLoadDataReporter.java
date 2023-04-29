@@ -85,7 +85,7 @@ public class TopBundleLoadDataReporter implements LoadDataReporter<TopBundlesLoa
     public CompletableFuture<Void> reportAsync(boolean force) {
         var topBundlesLoadData = generateLoadData();
         if (topBundlesLoadData != null || force) {
-            if (ExtensibleLoadManagerImpl.debug(pulsar.getLoadBalancerConfiguration(), log)) {
+            if (ExtensibleLoadManagerImpl.debug(pulsar.getConfig(), log)) {
                 log.info("Reporting TopBundlesLoadData:{}", topKBundles.getLoadData());
             }
             return this.bundleLoadDataStore.pushAsync(lookupServiceAddress, topKBundles.getLoadData())
@@ -113,7 +113,7 @@ public class TopBundleLoadDataReporter implements LoadDataReporter<TopBundlesLoa
                                 lastTombstonedAt = lastSuccessfulTombstonedAt;
                             } else {
                                 boolean debug = ExtensibleLoadManagerImpl.debug(
-                                        pulsar.getLoadBalancerConfiguration(), log);
+                                        pulsar.getConfig(), log);
                                 if (debug) {
                                     log.info("Cleaned broker load data.");
                                 }

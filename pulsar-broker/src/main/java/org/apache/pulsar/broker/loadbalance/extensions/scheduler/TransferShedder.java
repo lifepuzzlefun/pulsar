@@ -46,7 +46,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
 import org.apache.pulsar.broker.PulsarService;
-import org.apache.pulsar.broker.configuration.LoadBalancerConfiguration;
+import org.apache.pulsar.broker.ServiceConfiguration;
 import org.apache.pulsar.broker.loadbalance.BrokerFilterException;
 import org.apache.pulsar.broker.loadbalance.extensions.ExtensibleLoadManagerImpl;
 import org.apache.pulsar.broker.loadbalance.extensions.LoadManagerContext;
@@ -204,9 +204,9 @@ public class TransferShedder implements NamespaceUnloadStrategy {
         Optional<UnloadDecision.Reason> update(final LoadDataStore<BrokerLoadData> loadStore,
                                                final Map<String, BrokerLookupData> availableBrokers,
                                                Map<String, Long> recentlyUnloadedBrokers,
-                                               final LoadBalancerConfiguration conf) {
-
-            maxNumberOfBrokerSheddingPerCycle = conf.getLoadBalancerMaxNumberOfBrokerSheddingPerCycle();
+                                               final ServiceConfiguration conf) {
+            maxNumberOfBrokerSheddingPerCycle = conf.getLoadBalancerConfiguration()
+                    .getLoadBalancerMaxNumberOfBrokerSheddingPerCycle();
             var debug = ExtensibleLoadManagerImpl.debug(conf, log);
             UnloadDecision.Reason decisionReason = null;
             double sum = 0.0;
@@ -220,7 +220,7 @@ public class TransferShedder implements NamespaceUnloadStrategy {
                 missingLoadDataBrokers.remove(broker);
                 // We don't want to use the outdated load data.
                 if (now - localBrokerData.getUpdatedAt()
-                        > conf.getLoadBalancerBrokerLoadDataTTLInSeconds() * 1000) {
+                        > conf.getLoadBalancerConfiguration().getLoadBalancerBrokerLoadDataTTLInSeconds() * 1000) {
                     log.warn(
                             "Ignoring broker:{} load update because the load data timestamp:{} is too old.",
                             broker, localBrokerData.getUpdatedAt());
@@ -231,14 +231,14 @@ public class TransferShedder implements NamespaceUnloadStrategy {
                 // Also, we should give enough time for each broker to recompute its load after transfers.
                 if (recentlyUnloadedBrokers.containsKey(broker)) {
                     var elapsed = localBrokerData.getUpdatedAt() - recentlyUnloadedBrokers.get(broker);
-                    if (elapsed < conf.getLoadBalanceSheddingDelayInSeconds() * 1000) {
+                    if (elapsed < conf.getLoadBalancerConfiguration().getLoadBalanceSheddingDelayInSeconds() * 1000) {
                         if (debug) {
                             log.warn(
                                     "Broker:{} load data is too early since "
                                             + "the last transfer. elapsed {} secs < threshold {} secs",
                                     broker,
                                     TimeUnit.MILLISECONDS.toSeconds(elapsed),
-                                    conf.getLoadBalanceSheddingDelayInSeconds());
+                                    conf.getLoadBalancerConfiguration().getLoadBalanceSheddingDelayInSeconds());
                         }
                         update(0.0, 0.0, 0);
                         return Optional.of(CoolDown);
@@ -335,10 +335,10 @@ public class TransferShedder implements NamespaceUnloadStrategy {
         try {
             final var loadStore = context.brokerLoadDataStore();
             stats.setLoadDataStore(loadStore);
-            boolean debugMode = ExtensibleLoadManagerImpl.debug(conf, log);
+            boolean debugMode = ExtensibleLoadManagerImpl.debug(context.brokerConfiguration(), log);
 
             var skipReason = stats.update(
-                    context.brokerLoadDataStore(), availableBrokers, recentlyUnloadedBrokers, conf);
+                    context.brokerLoadDataStore(), availableBrokers, recentlyUnloadedBrokers, context.brokerConfiguration());
             if (skipReason.isPresent()) {
                 if (debugMode) {
                     log.warn(CANNOT_CONTINUE_UNLOAD_MSG

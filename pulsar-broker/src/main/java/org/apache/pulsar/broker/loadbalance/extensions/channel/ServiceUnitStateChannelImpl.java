@@ -406,7 +406,7 @@ public class ServiceUnitStateChannelImpl implements ServiceUnitStateChannel {
     }
 
     private boolean debug() {
-        return ExtensibleLoadManagerImpl.debug(config.getLoadBalancerConfiguration(), log);
+        return ExtensibleLoadManagerImpl.debug(config, log);
     }
 
     public CompletableFuture<Optional<String>> getChannelOwnerAsync() {

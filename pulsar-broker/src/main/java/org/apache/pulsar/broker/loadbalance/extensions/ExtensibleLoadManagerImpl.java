@@ -211,8 +211,8 @@ public class ExtensibleLoadManagerImpl implements ExtensibleLoadManager {
         return loadManagerWrapper.get();
     }
 
-    public static boolean debug(LoadBalancerConfiguration config, Logger log) {
-        return config.isLoadBalancerDebugModeEnabled() || log.isDebugEnabled();
+    public static boolean debug(ServiceConfiguration config, Logger log) {
+        return config.getLoadBalancerConfiguration().isLoadBalancerDebugModeEnabled() || log.isDebugEnabled();
     }
 
     @Override

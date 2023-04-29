@@ -26,6 +26,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.SystemUtils;
 import org.apache.pulsar.broker.PulsarService;
+import org.apache.pulsar.broker.ServiceConfiguration;
 import org.apache.pulsar.broker.configuration.LoadBalancerConfiguration;
 import org.apache.pulsar.broker.loadbalance.BrokerHostUsage;
 import org.apache.pulsar.broker.loadbalance.extensions.ExtensibleLoadManagerImpl;
@@ -49,7 +50,7 @@ public class BrokerLoadDataReporter implements LoadDataReporter<BrokerLoadData>,
 
     private final PulsarService pulsar;
 
-    private final LoadBalancerConfiguration conf;
+    private final ServiceConfiguration conf;
 
     private final LoadDataStore<BrokerLoadData> brokerLoadDataStore;
 
@@ -72,7 +73,7 @@ public class BrokerLoadDataReporter implements LoadDataReporter<BrokerLoadData>,
         this.brokerLoadDataStore = brokerLoadDataStore;
         this.lookupServiceAddress = lookupServiceAddress;
         this.pulsar = pulsar;
-        this.conf = this.pulsar.getConfiguration().getLoadBalancerConfiguration();
+        this.conf = this.pulsar.getConfiguration();
         if (SystemUtils.IS_OS_LINUX) {
             brokerHostUsage = new LinuxBrokerHostUsageImpl(pulsar);
         } else {
@@ -97,7 +98,7 @@ public class BrokerLoadDataReporter implements LoadDataReporter<BrokerLoadData>,
                     brokerStats.msgRateOut,
                     brokerStats.bundleCount,
                     brokerStats.topics,
-                    pulsar.getLoadBalancerConfiguration());
+                    conf);
         }
         return this.localData;
     }
@@ -108,7 +109,7 @@ public class BrokerLoadDataReporter implements LoadDataReporter<BrokerLoadData>,
         boolean debug = ExtensibleLoadManagerImpl.debug(conf, log);
         if (force || needBrokerDataUpdate()) {
             if (debug) {
-                log.info("publishing load report:{}", localData.toString(conf));
+                log.info("publishing load report:{}", localData.toString(conf.getLoadBalancerConfiguration()));
             }
             CompletableFuture<Void> future =
                     this.brokerLoadDataStore.pushAsync(this.lookupServiceAddress, newLoadData);
@@ -123,15 +124,17 @@ public class BrokerLoadDataReporter implements LoadDataReporter<BrokerLoadData>,
             return future;
         } else {
             if (debug) {
-                log.info("skipping load report:{}", localData.toString(conf));
+                log.info("skipping load report:{}", localData.toString(conf.getLoadBalancerConfiguration()));
             }
         }
         return CompletableFuture.completedFuture(null);
     }
 
     private boolean needBrokerDataUpdate() {
-        int loadBalancerReportUpdateMaxIntervalMinutes = conf.getLoadBalancerReportUpdateMaxIntervalMinutes();
-        int loadBalancerReportUpdateThresholdPercentage = conf.getLoadBalancerReportUpdateThresholdPercentage();
+        int loadBalancerReportUpdateMaxIntervalMinutes = conf.getLoadBalancerConfiguration()
+                .getLoadBalancerReportUpdateMaxIntervalMinutes();
+        int loadBalancerReportUpdateThresholdPercentage = conf.getLoadBalancerConfiguration()
+                .getLoadBalancerReportUpdateThresholdPercentage();
         final long updateMaxIntervalMillis = TimeUnit.MINUTES
                 .toMillis(loadBalancerReportUpdateMaxIntervalMinutes);
         long timeSinceLastReportWrittenToStore = System.currentTimeMillis() - localData.getReportedAt();

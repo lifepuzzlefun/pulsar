@@ -207,7 +207,7 @@ public abstract class MockedPulsarServiceBaseTest extends TestRetrySupport {
 
     protected void doInitConf() throws Exception {
         this.conf.setBrokerShutdownTimeoutMs(0L);
-        this.conf.getLoadBalancerConfiguration().setLoadBalancerOverrideBrokerNicSpeedGbps(Optional.of(1.0d));
+        this.conf.setLoadBalancerOverrideBrokerNicSpeedGbps(Optional.of(1.0d));
         this.conf.setBrokerServicePort(Optional.of(0));
         this.conf.setBrokerServicePortTls(Optional.of(0));
         this.conf.setAdvertisedAddress("localhost");
@@ -450,7 +450,7 @@ public abstract class MockedPulsarServiceBaseTest extends TestRetrySupport {
         configuration.setConfigurationMetadataStoreUrl("zk:localhost:3181");
         configuration.setAllowAutoTopicCreationType(TopicType.NON_PARTITIONED);
         configuration.setBrokerShutdownTimeoutMs(0L);
-        configuration.getLoadBalancerConfiguration().setLoadBalancerOverrideBrokerNicSpeedGbps(Optional.of(1.0d));
+        configuration.setLoadBalancerOverrideBrokerNicSpeedGbps(Optional.of(1.0d));
         configuration.setBrokerServicePort(Optional.of(0));
         configuration.setBrokerServicePortTls(Optional.of(0));
         configuration.setWebServicePort(Optional.of(0));

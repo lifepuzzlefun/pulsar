@@ -278,7 +278,7 @@ public class PulsarTestContext implements AutoCloseable {
             // change the default value for nic speed
             if (unconfiguredDefaults.getLoadBalancerConfiguration().getLoadBalancerOverrideBrokerNicSpeedGbps()
                     .equals(svcConfig.getLoadBalancerConfiguration().getLoadBalancerOverrideBrokerNicSpeedGbps())) {
-                svcConfig.getLoadBalancerConfiguration().setLoadBalancerOverrideBrokerNicSpeedGbps(Optional.of(1.0d));
+                svcConfig.setLoadBalancerOverrideBrokerNicSpeedGbps(Optional.of(1.0d));
             }
 
             // set the cluster name if it's unset

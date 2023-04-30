@@ -20,7 +20,6 @@ package org.apache.pulsar.broker.configuration;
 
 import static org.apache.pulsar.broker.ServiceConfiguration.CATEGORY_METRICS;
 import java.util.Properties;
-
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;

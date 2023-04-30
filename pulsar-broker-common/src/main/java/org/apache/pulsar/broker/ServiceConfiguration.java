@@ -18,9 +18,9 @@
  */
 package org.apache.pulsar.broker;
 
+import static org.apache.pulsar.common.configuration.PulsarConfigurationLoader.create;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
-
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -55,8 +55,6 @@ import org.apache.pulsar.common.sasl.SaslConstants;
 import org.apache.pulsar.common.util.DirectMemoryUtils;
 import org.apache.pulsar.metadata.api.MetadataStoreFactory;
 import org.apache.pulsar.metadata.impl.ZKMetadataStore;
-
-import static org.apache.pulsar.common.configuration.PulsarConfigurationLoader.create;
 
 /**
  * Pulsar service configuration object.

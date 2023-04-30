@@ -51,7 +51,7 @@ public class TransactionBufferClientImpl implements TransactionBufferClient {
                 maxConcurrentRequests, operationTimeoutInMills);
 
         ServiceConfiguration config = pulsarService.getConfig();
-        boolean exposeTopicLevelMetrics = config.isExposeTopicLevelMetricsInPrometheus();
+        boolean exposeTopicLevelMetrics = config.getMetricConfiguration().isExposeTopicLevelMetricsInPrometheus();
         boolean enableTxnCoordinator = config.isTransactionCoordinatorEnabled();
         return new TransactionBufferClientImpl(handler, exposeTopicLevelMetrics, enableTxnCoordinator);
     }

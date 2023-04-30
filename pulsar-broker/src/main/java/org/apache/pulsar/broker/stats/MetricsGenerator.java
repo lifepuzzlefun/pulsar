@@ -37,7 +37,7 @@ public class MetricsGenerator {
     public MetricsGenerator(PulsarService pulsar) {
         this.pulsar = pulsar;
         this.jvmMetrics = JvmMetrics.create(pulsar.getExecutor(), "brk",
-                pulsar.getConfiguration().getJvmGCMetricsLoggerClassName());
+                pulsar.getMetricConfiguration().getJvmGCMetricsLoggerClassName());
     }
 
     public Collection<Metrics> generate() {

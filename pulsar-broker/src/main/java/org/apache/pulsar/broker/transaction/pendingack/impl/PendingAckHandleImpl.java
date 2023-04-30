@@ -148,7 +148,7 @@ public class PendingAckHandleImpl extends PendingAckHandleState implements Pendi
                 .getExecutor(this);
 
         ServiceConfiguration config = persistentSubscription.getTopic().getBrokerService().pulsar().getConfig();
-        boolean exposeTopicLevelMetrics = config.isExposeTopicLevelMetricsInPrometheus();
+        boolean exposeTopicLevelMetrics = config.getMetricConfiguration().isExposeTopicLevelMetricsInPrometheus();
         this.handleStats = PendingAckHandleStats.create(topicName, subName, exposeTopicLevelMetrics);
 
         this.pendingAckStoreProvider = this.persistentSubscription.getTopic()

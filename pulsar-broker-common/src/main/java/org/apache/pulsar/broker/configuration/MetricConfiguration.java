@@ -20,6 +20,8 @@ package org.apache.pulsar.broker.configuration;
 
 import static org.apache.pulsar.broker.ServiceConfiguration.CATEGORY_METRICS;
 import java.util.Properties;
+
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
@@ -30,7 +32,11 @@ import org.apache.pulsar.common.configuration.PulsarConfiguration;
 @Getter
 @Setter
 @ToString
+@EqualsAndHashCode
 public class MetricConfiguration implements PulsarConfiguration {
+
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
     private ServiceConfiguration serviceConfiguration;
 
     @FieldContext(
@@ -139,6 +145,7 @@ public class MetricConfiguration implements PulsarConfiguration {
     private boolean exposeBundlesMetricsInPrometheus = false;
 
     @ToString.Exclude
+    @EqualsAndHashCode.Exclude
     @com.fasterxml.jackson.annotation.JsonIgnore
     private Properties properties = new Properties();
 

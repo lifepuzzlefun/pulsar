@@ -73,12 +73,6 @@ public class PulsarBrokerStarter {
             // it validates provided configuration is completed
             isComplete(config);
 
-            MetricConfiguration metricConfiguration = create(inputStream, MetricConfiguration.class);
-            isComplete(metricConfiguration);
-
-            config.setMetricConfiguration(metricConfiguration);
-            metricConfiguration.setServiceConfiguration(config);
-
             return config;
         }
     }

@@ -18,6 +18,7 @@
  */
 package org.apache.pulsar.common.configuration;
 
+import static java.lang.String.format;
 import static java.util.Objects.requireNonNull;
 import static org.apache.pulsar.common.util.FieldParser.update;
 import java.io.FileInputStream;
@@ -25,6 +26,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.Arrays;
 import java.util.Map;
@@ -96,6 +98,30 @@ public class PulsarConfigurationLoader {
             configuration = (T) clazz.getDeclaredConstructor().newInstance();
             configuration.setProperties(properties);
             update((Map) properties, configuration);
+
+            Field[] fields = clazz.getDeclaredFields();
+            Arrays.stream(fields).forEach(f -> {
+                try {
+                    f.setAccessible(true);
+
+                    if (f.getType().isAssignableFrom(PulsarConfiguration.class)) {
+                        update((Map) properties, f.get(configuration));
+                        Method setProperties = f.getType().getDeclaredMethod("setProperties", Properties.class);
+                        setProperties.invoke(f, properties);
+
+                        if (configuration.getClass().isAssignableFrom(ServiceConfiguration.class)) {
+                            Method setServiceConfiguration = f.getType()
+                                    .getDeclaredMethod("setServiceConfiguration", ServiceConfiguration.class);
+
+                            setServiceConfiguration.invoke(f, configuration);
+                        }
+
+                    }
+                } catch (Exception e) {
+                    throw new IllegalArgumentException(format("failed to initialize %s field while setting value %s",
+                            f.getName(), properties.get(f.getName())), e);
+                }
+            });
         } catch (InstantiationException | IllegalAccessException
                 | NoSuchMethodException | InvocationTargetException e) {
             throw new IllegalArgumentException("Failed to instantiate " + clazz.getName(), e);
@@ -136,16 +162,25 @@ public class PulsarConfigurationLoader {
                 long minValue = field.getAnnotation(FieldContext.class).minValue();
                 long maxValue = field.getAnnotation(FieldContext.class).maxValue();
                 if (isRequired && isEmpty(value)) {
-                    error.append(String.format("Required %s is null,", field.getName()));
+                    error.append(format("Required %s is null,", field.getName()));
                 }
 
                 if (value != null && Number.class.isAssignableFrom(value.getClass())) {
                     long fieldVal = ((Number) value).longValue();
                     boolean valid = fieldVal >= minValue && fieldVal <= maxValue;
                     if (!valid) {
-                        error.append(String.format("%s value %d doesn't fit in given range (%d, %d),", field.getName(),
+                        error.append(format("%s value %d doesn't fit in given range (%d, %d),", field.getName(),
                                 fieldVal, minValue, maxValue));
                     }
+                }
+            }
+
+            if (field.getType().isAssignableFrom(PulsarConfiguration.class)) {
+                field.setAccessible(true);
+                try {
+                    isComplete(field.get(obj));
+                } catch (IllegalAccessException e) {
+                    throw new RuntimeException(e);
                 }
             }
         }

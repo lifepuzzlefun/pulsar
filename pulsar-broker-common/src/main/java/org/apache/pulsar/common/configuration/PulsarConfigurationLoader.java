@@ -18,6 +18,7 @@
  */
 package org.apache.pulsar.common.configuration;
 
+import static java.lang.String.format;
 import static java.util.Objects.requireNonNull;
 import static org.apache.pulsar.common.util.FieldParser.update;
 import java.io.FileInputStream;
@@ -25,6 +26,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.Arrays;
 import java.util.Map;
@@ -96,6 +98,24 @@ public class PulsarConfigurationLoader {
             configuration = (T) clazz.getDeclaredConstructor().newInstance();
             configuration.setProperties(properties);
             update((Map) properties, configuration);
+
+            Field[] fields = clazz.getDeclaredFields();
+            Arrays.stream(fields).forEach(f -> {
+                try {
+                    f.setAccessible(true);
+
+                    if (f.getType().isAssignableFrom(PulsarConfiguration.class)) {
+                        update((Map) properties, f.get(configuration));
+                        Method setProperties = f.getType().getDeclaredMethod("setProperties", Properties.class);
+                        setProperties.invoke(f, properties);
+                    }
+
+                } catch (Exception e) {
+                    throw new IllegalArgumentException(format("failed to initialize %s field while setting value %s",
+                            f.getName(), properties.get(f.getName())), e);
+                }
+            });
+
         } catch (InstantiationException | IllegalAccessException
                 | NoSuchMethodException | InvocationTargetException e) {
             throw new IllegalArgumentException("Failed to instantiate " + clazz.getName(), e);
@@ -114,7 +134,7 @@ public class PulsarConfigurationLoader {
      *             if object is field values are not completed according to {@link FieldContext} constraints.
      * @throws IllegalAccessException
      */
-    public static boolean isComplete(Object obj) throws IllegalArgumentException {
+    public static boolean isComplete(Object obj) throws IllegalArgumentException, IllegalAccessException {
         requireNonNull(obj);
         Field[] fields = obj.getClass().getDeclaredFields();
         StringBuilder error = new StringBuilder();
@@ -147,6 +167,11 @@ public class PulsarConfigurationLoader {
                                 fieldVal, minValue, maxValue));
                     }
                 }
+            }
+
+            if (field.getType().isAssignableFrom(PulsarConfiguration.class)) {
+                field.setAccessible(true);
+                isComplete(field.get(obj));
             }
         }
         if (error.length() > 0) {

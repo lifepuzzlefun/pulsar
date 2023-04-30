@@ -20,6 +20,8 @@ package org.apache.pulsar.broker;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
+
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
@@ -53,6 +55,8 @@ import org.apache.pulsar.common.sasl.SaslConstants;
 import org.apache.pulsar.common.util.DirectMemoryUtils;
 import org.apache.pulsar.metadata.api.MetadataStoreFactory;
 import org.apache.pulsar.metadata.impl.ZKMetadataStore;
+
+import static org.apache.pulsar.common.configuration.PulsarConfigurationLoader.create;
 
 /**
  * Pulsar service configuration object.
@@ -3362,5 +3366,20 @@ public class ServiceConfiguration implements PulsarConfiguration {
                         Math.min(managedLedgerCacheEvictionFrequency, MAX_ML_CACHE_EVICTION_FREQUENCY),
                                    MIN_ML_CACHE_EVICTION_FREQUENCY))
                 : Math.min(MAX_ML_CACHE_EVICTION_INTERVAL_MS, managedLedgerCacheEvictionIntervalMs);
+    }
+
+    public MetricConfiguration getMetricConfiguration() {
+        if (metricConfiguration != null) {
+            return metricConfiguration;
+        }
+
+        // only unit test may call the following code.
+        try {
+            this.metricConfiguration = create(this.properties, MetricConfiguration.class);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+
+        return metricConfiguration;
     }
 }

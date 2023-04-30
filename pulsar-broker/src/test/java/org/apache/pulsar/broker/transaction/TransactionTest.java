@@ -1425,7 +1425,7 @@ public class TransactionTest extends TransactionTestBase {
         // Create Executor
         ScheduledExecutorService executorService = Executors.newSingleThreadScheduledExecutor();
         // Mock serviceConfiguration.
-        ServiceConfiguration serviceConfiguration = mock(ServiceConfiguration.class);
+        ServiceConfiguration serviceConfiguration = spy(ServiceConfiguration.class);
         when(serviceConfiguration.isTransactionCoordinatorEnabled()).thenReturn(true);
         // Mock executorProvider.
         ExecutorProvider executorProvider = mock(ExecutorProvider.class);

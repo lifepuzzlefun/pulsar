@@ -3372,8 +3372,16 @@ public class ServiceConfiguration implements PulsarConfiguration {
         }
 
         // only unit test may call the following code.
+        if (this.properties == null) {
+            this.metricConfiguration = new MetricConfiguration();
+            this.metricConfiguration.setServiceConfiguration(this);
+
+            return metricConfiguration;
+        }
+
         try {
             this.metricConfiguration = create(this.properties, MetricConfiguration.class);
+            this.metricConfiguration.setServiceConfiguration(this);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }

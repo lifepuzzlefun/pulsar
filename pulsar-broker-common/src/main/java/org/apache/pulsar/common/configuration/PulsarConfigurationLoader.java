@@ -221,7 +221,7 @@ public class PulsarConfigurationLoader {
             final ServiceConfiguration convertedConf = ServiceConfiguration.class
                     .getDeclaredConstructor().newInstance();
             Field[] confFields = conf.getClass().getDeclaredFields();
-            Properties sourceProperties = ensureAllValueIsStringType(conf.getProperties());
+            Properties sourceProperties = conf.getProperties();
             Properties targetProperties = convertedConf.getProperties();
             Arrays.stream(confFields).forEach(confField -> {
                 try {

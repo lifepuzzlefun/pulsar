@@ -31,6 +31,8 @@ import java.lang.reflect.Modifier;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.Properties;
+import java.util.function.BiFunction;
+
 import org.apache.commons.lang.StringUtils;
 import org.apache.pulsar.broker.ServiceConfiguration;
 import org.slf4j.Logger;
@@ -96,7 +98,9 @@ public class PulsarConfigurationLoader {
         T configuration;
         try {
             configuration = (T) clazz.getDeclaredConstructor().newInstance();
-            configuration.setProperties(properties);
+            configuration.setProperties(ensureAllValueIsStringType(properties));
+            // if some value in properties not string type the
+            // update method will be fail because `update` method expect properties is Map<String,String>
             update((Map) properties, configuration);
 
             Field[] fields = clazz.getDeclaredFields();
@@ -217,7 +221,7 @@ public class PulsarConfigurationLoader {
             final ServiceConfiguration convertedConf = ServiceConfiguration.class
                     .getDeclaredConstructor().newInstance();
             Field[] confFields = conf.getClass().getDeclaredFields();
-            Properties sourceProperties = conf.getProperties();
+            Properties sourceProperties = ensureAllValueIsStringType(conf.getProperties());
             Properties targetProperties = convertedConf.getProperties();
             Arrays.stream(confFields).forEach(confField -> {
                 try {
@@ -253,6 +257,16 @@ public class PulsarConfigurationLoader {
                 | InvocationTargetException | NoSuchMethodException e) {
             throw new RuntimeException("Exception caused while converting configuration: " + e.getMessage());
         }
+    }
+
+    public static Properties ensureAllValueIsStringType(Properties properties) {
+        properties.entrySet().forEach((e) -> {
+            if (!e.getValue().getClass().equals(String.class)) {
+                properties.put(e.getKey(), e.getValue().toString());
+            }
+        });
+
+        return properties;
     }
 
     public static ServiceConfiguration convertFrom(PulsarConfiguration conf) throws RuntimeException {

@@ -46,10 +46,12 @@ public class ProducerStatsRecorderImpl implements ProducerStatsRecorder {
     private final LongAdder numBytesSent;
     private final LongAdder numSendFailed;
     private final LongAdder numAcksReceived;
+    private final LongAdder waitConnectionTimeInMs;
     private final LongAdder totalMsgsSent;
     private final LongAdder totalBytesSent;
     private final LongAdder totalSendFailed;
     private final LongAdder totalAcksReceived;
+    private final LongAdder totalWaitConnectionTimeInMs;
     private static final DecimalFormat DEC = new DecimalFormat("0.000");
     private static final DecimalFormat THROUGHPUT_FORMAT = new DecimalFormat("0.00");
     private final transient DoublesSketch ds;
@@ -69,10 +71,12 @@ public class ProducerStatsRecorderImpl implements ProducerStatsRecorder {
         numBytesSent = new LongAdder();
         numSendFailed = new LongAdder();
         numAcksReceived = new LongAdder();
+        waitConnectionTimeInMs = new LongAdder();
         totalMsgsSent = new LongAdder();
         totalBytesSent = new LongAdder();
         totalSendFailed = new LongAdder();
         totalAcksReceived = new LongAdder();
+        totalWaitConnectionTimeInMs = new LongAdder();
         ds = DoublesSketch.builder().build(256);
         batchSizeDs = DoublesSketch.builder().build(256);
         msgSizeDs = DoublesSketch.builder().build(256);
@@ -87,10 +91,12 @@ public class ProducerStatsRecorderImpl implements ProducerStatsRecorder {
         numBytesSent = new LongAdder();
         numSendFailed = new LongAdder();
         numAcksReceived = new LongAdder();
+        waitConnectionTimeInMs = new LongAdder();
         totalMsgsSent = new LongAdder();
         totalBytesSent = new LongAdder();
         totalSendFailed = new LongAdder();
         totalAcksReceived = new LongAdder();
+        totalWaitConnectionTimeInMs = new LongAdder();
         ds = DoublesSketch.builder().build(256);
         batchSizeDs = DoublesSketch.builder().build(256);
         msgSizeDs = DoublesSketch.builder().build(256);
@@ -142,11 +148,13 @@ public class ProducerStatsRecorderImpl implements ProducerStatsRecorder {
         long currentNumBytesSent = numBytesSent.sumThenReset();
         long currentNumSendFailedMsgs = numSendFailed.sumThenReset();
         long currentNumAcksReceived = numAcksReceived.sumThenReset();
+        long currentWaitConnectionTimeMs = waitConnectionTimeInMs.sumThenReset();
 
         totalMsgsSent.add(currentNumMsgsSent);
         totalBytesSent.add(currentNumBytesSent);
         totalSendFailed.add(currentNumSendFailedMsgs);
         totalAcksReceived.add(currentNumAcksReceived);
+        totalWaitConnectionTimeInMs.add(currentWaitConnectionTimeMs);
 
         synchronized (ds) {
             latencyPctValues = ds.getQuantiles(PERCENTILES);
@@ -180,7 +188,8 @@ public class ProducerStatsRecorderImpl implements ProducerStatsRecorder {
                             + "BatchSize: med: {} - 95pct: {} - 99pct: {} - 99.9pct: {} - max: {} --- "
                             + "MsgSize: med: {} bytes - 95pct: {} bytes - 99pct: {} bytes - 99.9pct: {} bytes "
                             + "- max: {} bytes --- "
-                            + "Ack received rate: {} ack/s --- Failed messages: {} --- Pending messages: {}",
+                            + "Ack received rate: {} ack/s --- Failed messages: {} --- Pending messages: {}"
+                            + "Wait for connection: {} ms, Total connection wait time: {} ms.",
                     producer.getTopic(),
                     producer.getProducerName(),
                     THROUGHPUT_FORMAT.format(sendMsgsRate),
@@ -195,7 +204,7 @@ public class ProducerStatsRecorderImpl implements ProducerStatsRecorder {
                     DEC.format(msgSizePctValues[3]), DEC.format(msgSizePctValues[4]),
                     DEC.format(msgSizePctValues[5]),
                     THROUGHPUT_FORMAT.format(currentNumAcksReceived / elapsed), currentNumSendFailedMsgs,
-                    getPendingQueueSize());
+                    getPendingQueueSize(), currentWaitConnectionTimeMs, totalWaitConnectionTimeInMs.longValue());
         }
     }
 
@@ -229,15 +238,19 @@ public class ProducerStatsRecorderImpl implements ProducerStatsRecorder {
         }
     }
 
+
+
     void reset() {
         numMsgsSent.reset();
         numBytesSent.reset();
         numSendFailed.reset();
         numAcksReceived.reset();
+        waitConnectionTimeInMs.reset();
         totalMsgsSent.reset();
         totalBytesSent.reset();
         totalSendFailed.reset();
         totalAcksReceived.reset();
+        totalWaitConnectionTimeInMs.reset();
     }
 
     void updateCumulativeStats(ProducerStats stats) {
@@ -248,10 +261,12 @@ public class ProducerStatsRecorderImpl implements ProducerStatsRecorder {
         numBytesSent.add(stats.getNumBytesSent());
         numSendFailed.add(stats.getNumSendFailed());
         numAcksReceived.add(stats.getNumAcksReceived());
+        waitConnectionTimeInMs.add(stats.getWaitConnectionTimeMs());
         totalMsgsSent.add(stats.getTotalMsgsSent());
         totalBytesSent.add(stats.getTotalBytesSent());
         totalSendFailed.add(stats.getTotalSendFailed());
         totalAcksReceived.add(stats.getTotalAcksReceived());
+        totalWaitConnectionTimeInMs.add(stats.getTotalWaitConnectionTimeMs());
     }
 
     @Override
@@ -335,6 +350,21 @@ public class ProducerStatsRecorderImpl implements ProducerStatsRecorder {
         return producer.getPendingQueueSize();
     }
 
+    @Override
+    public long getWaitConnectionTimeMs() {
+        return waitConnectionTimeInMs.longValue();
+    }
+
+    @Override
+    public long getTotalWaitConnectionTimeMs() {
+        return totalWaitConnectionTimeInMs.longValue();
+    }
+
+    @Override
+    public void incrementWaitForConnectionTime(long waitTimeInMs) {
+        waitConnectionTimeInMs.add(waitTimeInMs);
+    }
+
     public void cancelStatsTimeout() {
         this.updateStats();
         if (statTimeout != null) {
@@ -342,6 +372,7 @@ public class ProducerStatsRecorderImpl implements ProducerStatsRecorder {
             statTimeout = null;
         }
     }
+
 
     private static final Logger log = LoggerFactory.getLogger(ProducerStatsRecorderImpl.class);
 }

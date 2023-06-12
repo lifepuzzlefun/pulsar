@@ -30,4 +30,6 @@ public interface ProducerStatsRecorder extends ProducerStats {
     void incrementNumAcksReceived(long latencyNs);
 
     void cancelStatsTimeout();
+
+    void incrementWaitForConnectionTime(long waitTimeInMs);
 }

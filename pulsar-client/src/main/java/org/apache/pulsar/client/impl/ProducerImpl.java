@@ -57,6 +57,7 @@ import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicIntegerFieldUpdater;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicLongFieldUpdater;
 import java.util.function.Consumer;
 import org.apache.commons.lang3.StringUtils;
@@ -127,6 +128,10 @@ public class ProducerImpl<T> extends ProducerBase<T> implements TimerTask, Conne
 
     private String connectionId;
     private String connectedSince;
+
+    private final AtomicLong lastTimeConnectionFailed = new AtomicLong(System.nanoTime());
+    private final AtomicLong lastTimeConnectionOpened = new AtomicLong(-1);
+
     private final int partitionIndex;
 
     private final ProducerStatsRecorder stats;
@@ -1664,6 +1669,18 @@ public class ProducerImpl<T> extends ProducerBase<T> implements TimerTask, Conne
             // We set the cnx reference before registering the producer on the cnx, so if the cnx breaks before creating
             // the producer, it will try to grab a new cnx. We also increment and get the epoch value for the producer.
             epoch = connectionHandler.switchClientCnx(cnx);
+
+            long now = System.nanoTime();
+            long lastTimeFailed = lastTimeConnectionFailed.get();
+            lastTimeConnectionOpened.set(now);
+
+            if (lastTimeFailed < now) {
+                stats.incrementWaitForConnectionTime(
+                        TimeUnit.NANOSECONDS.convert(now - lastTimeFailed,
+                                TimeUnit.MILLISECONDS));
+            }
+
+            lastTimeConnectionFailed.set(-1);
         }
         cnx.registerProducer(producerId, this);
 
@@ -1841,6 +1858,7 @@ public class ProducerImpl<T> extends ProducerBase<T> implements TimerTask, Conne
 
     @Override
     public void connectionFailed(PulsarClientException exception) {
+        lastTimeConnectionFailed.set(System.nanoTime());
         boolean nonRetriableError = !PulsarClientException.isRetriableError(exception);
         boolean timeout = System.currentTimeMillis() > lookupDeadline;
         if (nonRetriableError || timeout) {

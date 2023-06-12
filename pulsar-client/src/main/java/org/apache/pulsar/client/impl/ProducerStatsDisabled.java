@@ -49,6 +49,11 @@ public class ProducerStatsDisabled implements ProducerStatsRecorder {
     }
 
     @Override
+    public void incrementWaitForConnectionTime(long waitTimeInMs) {
+        // Do nothing
+    }
+
+    @Override
     public long getNumMsgsSent() {
         return 0;
     }

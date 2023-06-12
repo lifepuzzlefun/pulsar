@@ -124,4 +124,18 @@ public interface ProducerStats extends Serializable {
     default Map<String, ProducerStats> getPartitionStats() {
         return Collections.emptyMap();
     }
+
+    /**
+     * @return the wait time for connection ready in milliseconds for the last interval
+     */
+    default long getWaitConnectionTimeMs() {
+        return 0;
+    }
+
+    /**
+     * @return the total wait time for connection ready in milliseconds
+     */
+    default long getTotalWaitConnectionTimeMs() {
+        return 0;
+    }
 }

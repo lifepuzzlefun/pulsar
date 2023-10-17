@@ -376,14 +376,8 @@ public class ConsumerImpl<T> extends ConsumerBase<T> implements ConnectionHandle
             DeadLetterPolicyTopicProducerProvider confProvider =
                     conf.getDeadLetterPolicyTopicProducerProvider();
 
-            boolean shareDeadLetterProducers = deadLetterPolicy.isShareDeadLetterPolicyProducers();
-
-            if (shareDeadLetterProducers) {
-                if (confProvider != null) {
-                    deadLetterPolicyTopicProducerProvider = confProvider;
-                } else {
-                    deadLetterPolicyTopicProducerProvider = new SharedDeadLetterPolicyProducerProvider(client);
-                }
+            if (confProvider != null) {
+                deadLetterPolicyTopicProducerProvider = confProvider;
             } else {
                 deadLetterPolicyTopicProducerProvider = new DefaultDeadLetterPolicyProducerProvider(client);
             }
@@ -393,8 +387,6 @@ public class ConsumerImpl<T> extends ConsumerBase<T> implements ConnectionHandle
             possibleSendToDeadLetterTopicMessages = null;
             deadLetterPolicyTopicProducerProvider = new DefaultDeadLetterPolicyProducerProvider(client);
         }
-
-        conf.setDeadLetterPolicyTopicProducerProvider(deadLetterPolicyTopicProducerProvider);
 
         topicNameWithoutPartition = topicName.getPartitionedTopicName();
 

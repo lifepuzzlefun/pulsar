@@ -171,20 +171,6 @@ public class MultiTopicsConsumerImpl<T> extends ConsumerBase<T> {
 
         if (confProvider != null) {
             this.deadLetterPolicyTopicProducerProvider = confProvider;
-        } else {
-            DeadLetterPolicy policy = conf.getDeadLetterPolicy();
-
-            if (policy != null) {
-                if (policy.isShareDeadLetterPolicyProducers()) {
-                    this.deadLetterPolicyTopicProducerProvider =
-                            new SharedDeadLetterPolicyProducerProvider(client);
-                } else {
-                    this.deadLetterPolicyTopicProducerProvider =
-                            new DefaultDeadLetterPolicyProducerProvider(client);
-                }
-
-                conf.setDeadLetterPolicyTopicProducerProvider(this.deadLetterPolicyTopicProducerProvider);
-            }
         }
 
         checkArgument(topicNamesValid(conf.getTopicNames()), "Topics is invalid.");
@@ -636,7 +622,6 @@ public class MultiTopicsConsumerImpl<T> extends ConsumerBase<T> {
         List<CompletableFuture<Void>> futureList = consumers.values().stream()
             .map(ConsumerImpl::closeAsync).collect(Collectors.toList());
 
-        //
         if (deadLetterPolicyTopicProducerProvider != null
                 && deadLetterPolicyTopicProducerProvider.isProducerOwner()) {
             futureList.add(deadLetterPolicyTopicProducerProvider.closeAsync());
@@ -1155,7 +1140,6 @@ public class MultiTopicsConsumerImpl<T> extends ConsumerBase<T> {
                 .build();
         configurationData.setBatchReceivePolicy(internalBatchReceivePolicy);
         configurationData = configurationData.clone();
-        configurationData.setDeadLetterPolicyTopicProducerProvider(deadLetterPolicyTopicProducerProvider);
         return ConsumerImpl.newConsumerImpl(client, partitionName,
                 configurationData, client.externalExecutorProvider(),
                 partitionIndex, true, listener != null, subFuture,

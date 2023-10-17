@@ -78,8 +78,13 @@ public class DeadLetterTopicTest extends ProducerConsumerBase {
         return str.toString();
     }
 
-    @Test
-    public void testDeadLetterTopicWithMessageKey() throws Exception {
+    @DataProvider(name = "enableShareDeadLetterPolicyProducers")
+    public Object[][] enableShareDeadLetterPolicyProducers() {
+        return new Object[][]{{false}, {true}};
+    }
+
+    @Test(dataProvider = "enableShareDeadLetterPolicyProducers")
+    public void testDeadLetterTopicWithMessageKey(boolean enableShareDeadLetterPolicyProducers) throws Exception {
         final String topic = "persistent://my-property/my-ns/dead-letter-topic";
 
         final int maxRedeliveryCount = 1;
@@ -91,7 +96,10 @@ public class DeadLetterTopicTest extends ProducerConsumerBase {
                 .subscriptionName("my-subscription")
                 .subscriptionType(SubscriptionType.Shared)
                 .ackTimeout(1, TimeUnit.SECONDS)
-                .deadLetterPolicy(DeadLetterPolicy.builder().maxRedeliverCount(maxRedeliveryCount).build())
+                .deadLetterPolicy(DeadLetterPolicy.builder()
+                        .shareDeadLetterPolicyProducers(enableShareDeadLetterPolicyProducers)
+                        .maxRedeliverCount(maxRedeliveryCount)
+                        .build())
                 .receiverQueueSize(100)
                 .subscriptionInitialPosition(SubscriptionInitialPosition.Earliest)
                 .subscribe();
@@ -228,8 +236,8 @@ public class DeadLetterTopicTest extends ProducerConsumerBase {
         checkConsumer.close();
     }
 
-    @Test(timeOut = 20000)
-    public void testDeadLetterTopicHasOriginalInfo() throws Exception {
+    @Test(timeOut = 20000, dataProvider = "enableShareDeadLetterPolicyProducers")
+    public void testDeadLetterTopicHasOriginalInfo(boolean enableShareDeadLetterPolicyProducers) throws Exception {
         final String topic = "persistent://my-property/my-ns/dead-letter-topic";
 
         final int maxRedeliveryCount = 1;
@@ -240,7 +248,9 @@ public class DeadLetterTopicTest extends ProducerConsumerBase {
                 .subscriptionName("my-subscription")
                 .subscriptionType(SubscriptionType.Shared)
                 .ackTimeout(1, TimeUnit.SECONDS)
-                .deadLetterPolicy(DeadLetterPolicy.builder().maxRedeliverCount(maxRedeliveryCount).build())
+                .deadLetterPolicy(DeadLetterPolicy.builder()
+                        .shareDeadLetterPolicyProducers(enableShareDeadLetterPolicyProducers)
+                        .maxRedeliverCount(maxRedeliveryCount).build())
                 .subscriptionInitialPosition(SubscriptionInitialPosition.Earliest)
                 .subscribe();
 
@@ -300,8 +310,8 @@ public class DeadLetterTopicTest extends ProducerConsumerBase {
         private String field3;
     }
 
-    @Test(timeOut = 20000)
-    public void testAutoConsumeSchemaDeadLetter() throws Exception {
+    @Test(timeOut = 20000, dataProvider = "enableShareDeadLetterPolicyProducers")
+    public void testAutoConsumeSchemaDeadLetter(boolean enableShareDeadLetterPolicyProducers) throws Exception {
         final String topic = "persistent://my-property/my-ns/dead-letter-topic";
         final String subName = "my-subscription";
         final int maxRedeliveryCount = 1;
@@ -338,7 +348,9 @@ public class DeadLetterTopicTest extends ProducerConsumerBase {
                 .subscriptionName(subName)
                 .subscriptionType(SubscriptionType.Shared)
                 .ackTimeout(1, TimeUnit.SECONDS)
-                .deadLetterPolicy(DeadLetterPolicy.builder().maxRedeliverCount(maxRedeliveryCount).build())
+                .deadLetterPolicy(DeadLetterPolicy.builder()
+                        .shareDeadLetterPolicyProducers(enableShareDeadLetterPolicyProducers)
+                        .maxRedeliverCount(maxRedeliveryCount).build())
                 .subscriptionInitialPosition(SubscriptionInitialPosition.Earliest)
                 .subscribe();
         producer.close();
@@ -369,8 +381,9 @@ public class DeadLetterTopicTest extends ProducerConsumerBase {
         newPulsarClient.close();
     }
 
-    @Test(timeOut = 30000)
-    public void testDuplicatedMessageSendToDeadLetterTopic() throws Exception {
+    @Test(timeOut = 30000, dataProvider = "enableShareDeadLetterPolicyProducers")
+    public void testDuplicatedMessageSendToDeadLetterTopic(boolean enableShareDeadLetterPolicyProducers)
+            throws Exception {
         final String topic = "persistent://my-property/my-ns/dead-letter-topic-DuplicatedMessage";
         final int maxRedeliveryCount = 1;
         final int messageCount = 10;
@@ -388,7 +401,11 @@ public class DeadLetterTopicTest extends ProducerConsumerBase {
                             .subscriptionName("my-subscription-DuplicatedMessage")
                             .subscriptionType(SubscriptionType.Shared)
                             .ackTimeout(1001, TimeUnit.MILLISECONDS)
-                            .deadLetterPolicy(DeadLetterPolicy.builder().maxRedeliverCount(maxRedeliveryCount).deadLetterTopic(topic + "-DLQ").build())
+                            .deadLetterPolicy(DeadLetterPolicy.builder()
+                                    .maxRedeliverCount(maxRedeliveryCount)
+                                    .deadLetterTopic(topic + "-DLQ")
+                                    .shareDeadLetterPolicyProducers(enableShareDeadLetterPolicyProducers)
+                                    .build())
                             .negativeAckRedeliveryDelay(1001, TimeUnit.MILLISECONDS)
                             .receiverQueueSize(100)
                             .subscriptionInitialPosition(SubscriptionInitialPosition.Earliest)
@@ -444,8 +461,8 @@ public class DeadLetterTopicTest extends ProducerConsumerBase {
      * The test is disabled {@link https://github.com/apache/pulsar/issues/2647}.
      * @throws Exception
      */
-    @Test(enabled = false)
-    public void testDeadLetterTopicWithMultiTopic() throws Exception {
+    @Test(enabled = false, dataProvider = "enableShareDeadLetterPolicyProducers")
+    public void testDeadLetterTopicWithMultiTopic(boolean enableShareDeadLetterPolicyProducers) throws Exception {
         final String topic1 = "persistent://my-property/my-ns/dead-letter-topic-1";
         final String topic2 = "persistent://my-property/my-ns/dead-letter-topic-2";
 
@@ -459,14 +476,17 @@ public class DeadLetterTopicTest extends ProducerConsumerBase {
                 .subscriptionName("my-subscription")
                 .subscriptionType(SubscriptionType.Shared)
                 .ackTimeout(1, TimeUnit.SECONDS)
-                .deadLetterPolicy(DeadLetterPolicy.builder().maxRedeliverCount(maxRedeliveryCount).build())
+                .deadLetterPolicy(DeadLetterPolicy.builder()
+                        .shareDeadLetterPolicyProducers(enableShareDeadLetterPolicyProducers)
+                        .maxRedeliverCount(maxRedeliveryCount).build())
                 .receiverQueueSize(100)
                 .subscriptionInitialPosition(SubscriptionInitialPosition.Earliest)
                 .subscribe();
 
         // subscribe to the DLQ topics before consuming original topics
         Consumer<byte[]> deadLetterConsumer = pulsarClient.newConsumer(Schema.BYTES)
-                .topic("persistent://my-property/my-ns/dead-letter-topic-1-my-subscription-DLQ", "persistent://my-property/my-ns/dead-letter-topic-2-my-subscription-DLQ")
+                .topic("persistent://my-property/my-ns/dead-letter-topic-1-my-subscription-DLQ",
+                        "persistent://my-property/my-ns/dead-letter-topic-2-my-subscription-DLQ")
                 .subscriptionName("my-subscription")
                 .subscriptionInitialPosition(SubscriptionInitialPosition.Earliest)
                 .subscribe();
@@ -523,8 +543,8 @@ public class DeadLetterTopicTest extends ProducerConsumerBase {
         checkConsumer.close();
     }
 
-    @Test(groups = "quarantine")
-    public void testDeadLetterTopicByCustomTopicName() throws Exception {
+    @Test(groups = "quarantine", dataProvider = "enableShareDeadLetterPolicyProducers")
+    public void testDeadLetterTopicByCustomTopicName(boolean enableShareDeadLetterPolicyProducers) throws Exception {
         final String topic = "persistent://my-property/my-ns/dead-letter-topic";
         final int maxRedeliveryCount = 2;
         final int sendMessages = 100;
@@ -537,6 +557,7 @@ public class DeadLetterTopicTest extends ProducerConsumerBase {
                 .ackTimeout(1, TimeUnit.SECONDS)
                 .receiverQueueSize(100)
                 .deadLetterPolicy(DeadLetterPolicy.builder()
+                        .shareDeadLetterPolicyProducers(enableShareDeadLetterPolicyProducers)
                         .maxRedeliverCount(maxRedeliveryCount)
                         .deadLetterTopic("persistent://my-property/my-ns/dead-letter-custom-topic-my-subscription-custom-DLQ")
                         .build())
@@ -591,8 +612,9 @@ public class DeadLetterTopicTest extends ProducerConsumerBase {
     /**
      * issue https://github.com/apache/pulsar/issues/3077
      */
-    @Test(timeOut = 200000)
-    public void testDeadLetterWithoutConsumerReceiveImmediately() throws PulsarClientException, InterruptedException {
+    @Test(timeOut = 200000, dataProvider = "enableShareDeadLetterPolicyProducers")
+    public void testDeadLetterWithoutConsumerReceiveImmediately(boolean enableShareDeadLetterPolicyProducers)
+            throws PulsarClientException, InterruptedException {
         final String topic = "persistent://my-property/my-ns/dead-letter-topic-without-consumer-receive-immediately";
 
         Consumer<byte[]> consumer = pulsarClient.newConsumer()
@@ -600,7 +622,9 @@ public class DeadLetterTopicTest extends ProducerConsumerBase {
                 .subscriptionType(SubscriptionType.Shared)
                 .subscriptionName("my-subscription")
                 .ackTimeout(1, TimeUnit.SECONDS)
-                .deadLetterPolicy(DeadLetterPolicy.builder().maxRedeliverCount(1).build())
+                .deadLetterPolicy(DeadLetterPolicy.builder()
+                        .shareDeadLetterPolicyProducers(enableShareDeadLetterPolicyProducers)
+                        .maxRedeliverCount(1).build())
                 .subscribe();
 
         Producer<byte[]> producer = pulsarClient.newProducer()
@@ -616,8 +640,9 @@ public class DeadLetterTopicTest extends ProducerConsumerBase {
         assertNotNull(msg);
     }
 
-    @Test
-    public void testDeadLetterTopicUnderPartitionedTopicWithKeyShareType() throws Exception {
+    @Test(dataProvider = "enableShareDeadLetterPolicyProducers")
+    public void testDeadLetterTopicUnderPartitionedTopicWithKeyShareType(boolean enableShareDeadLetterPolicyProducers)
+            throws Exception {
         final String topic = "persistent://my-property/my-ns/dead-letter-topic-with-partitioned-topic";
 
         final int maxRedeliveryCount = 2;
@@ -634,7 +659,9 @@ public class DeadLetterTopicTest extends ProducerConsumerBase {
                 .subscriptionType(SubscriptionType.Key_Shared)
                 .keySharedPolicy(KeySharedPolicy.autoSplitHashRange())
                 .ackTimeout(1, TimeUnit.SECONDS)
-                .deadLetterPolicy(DeadLetterPolicy.builder().maxRedeliverCount(maxRedeliveryCount).build())
+                .deadLetterPolicy(DeadLetterPolicy.builder()
+                        .shareDeadLetterPolicyProducers(enableShareDeadLetterPolicyProducers)
+                        .maxRedeliverCount(maxRedeliveryCount).build())
                 .receiverQueueSize(100)
                 .subscriptionInitialPosition(SubscriptionInitialPosition.Earliest)
                 .subscribe();
@@ -712,8 +739,9 @@ public class DeadLetterTopicTest extends ProducerConsumerBase {
         checkConsumer.close();
     }
 
-    @Test
-    public void testDeadLetterTopicWithInitialSubscription() throws Exception {
+    @Test(dataProvider = "enableShareDeadLetterPolicyProducers")
+    public void testDeadLetterTopicWithInitialSubscription(boolean enableShareDeadLetterPolicyProducers)
+            throws Exception {
         final String topic = "persistent://my-property/my-ns/dead-letter-topic";
 
         final int maxRedeliveryCount = 1;
@@ -729,6 +757,7 @@ public class DeadLetterTopicTest extends ProducerConsumerBase {
                 .subscriptionType(SubscriptionType.Shared)
                 .ackTimeout(1, TimeUnit.SECONDS)
                 .deadLetterPolicy(DeadLetterPolicy.builder()
+                        .shareDeadLetterPolicyProducers(enableShareDeadLetterPolicyProducers)
                         .maxRedeliverCount(maxRedeliveryCount)
                         .initialSubscriptionName(dlqInitialSub)
                         .build())
@@ -807,8 +836,9 @@ public class DeadLetterTopicTest extends ProducerConsumerBase {
         });
     }
 
-    @Test
-    public void testDeadLetterTopicWithInitialSubscriptionAndMultiConsumers() throws Exception {
+    @Test(dataProvider = "enableShareDeadLetterPolicyProducers")
+    public void testDeadLetterTopicWithInitialSubscriptionAndMultiConsumers(
+            boolean enableShareDeadLetterPolicyProducers) throws Exception {
         final String topic = "persistent://my-property/my-ns/dead-letter-topic";
 
         final int maxRedeliveryCount = 1;
@@ -824,6 +854,7 @@ public class DeadLetterTopicTest extends ProducerConsumerBase {
                 .subscriptionType(SubscriptionType.Shared)
                 .ackTimeout(1, TimeUnit.SECONDS)
                 .deadLetterPolicy(DeadLetterPolicy.builder()
+                        .shareDeadLetterPolicyProducers(enableShareDeadLetterPolicyProducers)
                         .maxRedeliverCount(maxRedeliveryCount)
                         .initialSubscriptionName(dlqInitialSub)
                         .build())
@@ -837,6 +868,7 @@ public class DeadLetterTopicTest extends ProducerConsumerBase {
                 .subscriptionType(SubscriptionType.Shared)
                 .ackTimeout(1, TimeUnit.SECONDS)
                 .deadLetterPolicy(DeadLetterPolicy.builder()
+                        .shareDeadLetterPolicyProducers(enableShareDeadLetterPolicyProducers)
                         .maxRedeliverCount(maxRedeliveryCount)
                         .initialSubscriptionName(dlqInitialSub)
                         .build())
@@ -888,11 +920,14 @@ public class DeadLetterTopicTest extends ProducerConsumerBase {
         consumer.close();
     }
 
-    @Test
-    public void testDeadLetterPolicyDeserialize() throws Exception {
+    @Test(dataProvider = "enableShareDeadLetterPolicyProducers")
+    public void testDeadLetterPolicyDeserialize(boolean enableShareDeadLetterPolicyProducers) throws Exception {
         ConsumerBuilder<String> consumerBuilder = pulsarClient.newConsumer(Schema.STRING);
         DeadLetterPolicy policy =
-                DeadLetterPolicy.builder().deadLetterTopic("a").retryLetterTopic("a").initialSubscriptionName("a")
+                DeadLetterPolicy.builder()
+                        .shareDeadLetterPolicyProducers(enableShareDeadLetterPolicyProducers)
+                        .deadLetterTopic("a")
+                        .retryLetterTopic("a").initialSubscriptionName("a")
                         .maxRedeliverCount(1).build();
         consumerBuilder.deadLetterPolicy(policy);
         Map<String, Object> config = new HashMap<>();

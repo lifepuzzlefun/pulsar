@@ -60,4 +60,12 @@ public class DeadLetterPolicy {
      * to be created.
      */
     private String initialSubscriptionName;
+
+    /**
+     * If shared deadLetterPolicy producers for retry and dlq topic producer.
+     * If this field set to true. When consumer subscribe to multi-partition topic,
+     * only one instance of retry and dlq topic producer for this consumer instance
+     * which can reduce connection pressure on broker side and reduce resource for client.
+     */
+    private boolean shareDeadLetterPolicyProducers;
 }

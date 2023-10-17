@@ -622,8 +622,7 @@ public class MultiTopicsConsumerImpl<T> extends ConsumerBase<T> {
         List<CompletableFuture<Void>> futureList = consumers.values().stream()
             .map(ConsumerImpl::closeAsync).collect(Collectors.toList());
 
-        if (deadLetterPolicyTopicProducerProvider != null
-                && deadLetterPolicyTopicProducerProvider.isProducerOwner()) {
+        if (deadLetterPolicyTopicProducerProvider != null) {
             futureList.add(deadLetterPolicyTopicProducerProvider.closeAsync());
         }
 

@@ -162,9 +162,11 @@ public class ConsumerBuilderImpl<T> implements ConsumerBuilder<T> {
                                 }
                             }
                             conf.getTopicNames().add(conf.getDeadLetterPolicy().getRetryLetterTopic());
+                            initDeadLetterPolicyTopicProducerProvider(conf);
                         });
             } else {
                 conf.getTopicNames().add(conf.getDeadLetterPolicy().getRetryLetterTopic());
+                initDeadLetterPolicyTopicProducerProvider(conf);
                 applyDLQConfig = CompletableFuture.completedFuture(null);
             }
         } else {
@@ -177,6 +179,19 @@ public class ConsumerBuilderImpl<T> implements ConsumerBuilder<T> {
                 return client.subscribeAsync(conf, schema, new ConsumerInterceptors<>(interceptorList));
             }
         });
+    }
+
+    private void initDeadLetterPolicyTopicProducerProvider(ConsumerConfigurationData<T> conf) {
+        DeadLetterPolicy policy = conf.getDeadLetterPolicy();
+        DeadLetterPolicyTopicProducerProvider producerProvider;
+
+        if (policy != null && policy.isShareDeadLetterPolicyProducers()) {
+            producerProvider = new SharedDeadLetterPolicyProducerProvider(client);
+        } else {
+            producerProvider = new DefaultDeadLetterPolicyProducerProvider(client);
+        }
+
+        conf.setDeadLetterPolicyTopicProducerProvider(producerProvider);
     }
 
     @Override

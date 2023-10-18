@@ -184,6 +184,7 @@ public class ConsumerImpl<T> extends ConsumerBase<T> implements ConnectionHandle
     private final Map<MessageIdAdv, List<MessageImpl<T>>> possibleSendToDeadLetterTopicMessages;
 
     private final DeadLetterPolicy deadLetterPolicy;
+    private final DeadLetterPolicyTopicProducerProvider deadLetterPolicyTopicProducerProvider;
 
     private volatile CompletableFuture<Producer<byte[]>> deadLetterProducer;
 
@@ -372,9 +373,19 @@ public class ConsumerImpl<T> extends ConsumerBase<T> implements ConnectionHandle
                         conf.getDeadLetterPolicy().getInitialSubscriptionName());
             }
 
+            DeadLetterPolicyTopicProducerProvider confProvider =
+                    conf.getDeadLetterPolicyTopicProducerProvider();
+
+            if (confProvider != null) {
+                deadLetterPolicyTopicProducerProvider = confProvider;
+            } else {
+                deadLetterPolicyTopicProducerProvider = new DefaultDeadLetterPolicyProducerProvider(client);
+            }
+
         } else {
             deadLetterPolicy = null;
             possibleSendToDeadLetterTopicMessages = null;
+            deadLetterPolicyTopicProducerProvider = new DefaultDeadLetterPolicyProducerProvider(client);
         }
 
         topicNameWithoutPartition = topicName.getPartitionedTopicName();
@@ -611,12 +622,8 @@ public class ConsumerImpl<T> extends ConsumerBase<T> implements ConnectionHandle
             createProducerLock.writeLock().lock();
             try {
                 if (retryLetterProducer == null) {
-                    retryLetterProducer = client.newProducer(Schema.AUTO_PRODUCE_BYTES(schema))
-                            .topic(this.deadLetterPolicy.getRetryLetterTopic())
-                            .enableBatching(false)
-                            .enableChunking(true)
-                            .blockIfQueueFull(false)
-                            .create();
+                    retryLetterProducer = deadLetterPolicyTopicProducerProvider.
+                            getRetryTopicProducer(this.deadLetterPolicy, schema);
                 }
             } catch (Exception e) {
                 log.error("Create retry letter producer exception with topic: {}",
@@ -1063,20 +1070,29 @@ public class ConsumerImpl<T> extends ConsumerBase<T> implements ConnectionHandle
 
         ArrayList<CompletableFuture<Void>> closeFutures = new ArrayList<>(4);
         closeFutures.add(closeFuture);
-        if (retryLetterProducer != null) {
-            closeFutures.add(retryLetterProducer.closeAsync().whenComplete((ignore, ex) -> {
-                if (ex != null) {
-                    log.warn("Exception ignored in closing retryLetterProducer of consumer", ex);
-                }
-            }));
+
+        if (deadLetterPolicyTopicProducerProvider != null
+                && deadLetterPolicyTopicProducerProvider.isProducerOwner()) {
+            if (retryLetterProducer != null) {
+                closeFutures.add(retryLetterProducer.closeAsync().whenComplete((ignore, ex) -> {
+                    if (ex != null) {
+                        log.warn("Exception ignored in closing retryLetterProducer of consumer", ex);
+                    }
+                }));
+            }
+            if (deadLetterProducer != null) {
+                closeFutures.add(deadLetterProducer.thenCompose(p -> p.closeAsync()).whenComplete((ignore, ex) -> {
+                    if (ex != null) {
+                        log.warn("Exception ignored in closing deadLetterProducer of consumer", ex);
+                    }
+                }));
+            }
         }
-        if (deadLetterProducer != null) {
-            closeFutures.add(deadLetterProducer.thenCompose(p -> p.closeAsync()).whenComplete((ignore, ex) -> {
-                if (ex != null) {
-                    log.warn("Exception ignored in closing deadLetterProducer of consumer", ex);
-                }
-            }));
+
+        if (deadLetterPolicyTopicProducerProvider != null && !hasParentConsumer) {
+            closeFutures.add(deadLetterPolicyTopicProducerProvider.closeAsync());
         }
+
         return FutureUtil.waitForAll(closeFutures);
     }
 
@@ -2159,14 +2175,8 @@ public class ConsumerImpl<T> extends ConsumerBase<T> implements ConnectionHandle
             createProducerLock.writeLock().lock();
             try {
                 if (deadLetterProducer == null) {
-                    deadLetterProducer =
-                            ((ProducerBuilderImpl<byte[]>) client.newProducer(Schema.AUTO_PRODUCE_BYTES(schema)))
-                                    .initialSubscriptionName(this.deadLetterPolicy.getInitialSubscriptionName())
-                                    .topic(this.deadLetterPolicy.getDeadLetterTopic())
-                                    .blockIfQueueFull(false)
-                                    .enableBatching(false)
-                                    .enableChunking(true)
-                                    .createAsync();
+                    deadLetterProducer = this.deadLetterPolicyTopicProducerProvider
+                            .getDLQTopicProducer(this.deadLetterPolicy, schema);
                 }
             } finally {
                 createProducerLock.writeLock().unlock();

@@ -49,6 +49,7 @@ import org.apache.pulsar.client.api.RegexSubscriptionMode;
 import org.apache.pulsar.client.api.SubscriptionInitialPosition;
 import org.apache.pulsar.client.api.SubscriptionMode;
 import org.apache.pulsar.client.api.SubscriptionType;
+import org.apache.pulsar.client.impl.DeadLetterPolicyTopicProducerProvider;
 
 @Data
 @NoArgsConstructor
@@ -397,6 +398,9 @@ public class ConsumerConfigurationData<T> implements Serializable, Cloneable {
     private boolean startPaused = false;
 
     private boolean autoScaledReceiverQueueSizeEnabled = false;
+
+    @JsonIgnore
+    private transient DeadLetterPolicyTopicProducerProvider deadLetterPolicyTopicProducerProvider = null;
 
     private List<TopicConsumerConfigurationData> topicConfigurations = new ArrayList<>();
 

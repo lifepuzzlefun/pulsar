@@ -185,15 +185,13 @@ public class ConsumerBuilderImpl<T> implements ConsumerBuilder<T> {
         DeadLetterPolicy policy = conf.getDeadLetterPolicy();
         DeadLetterPolicyTopicProducerProvider producerProvider;
 
-        if (policy != null) {
-            if (policy.isShareDeadLetterPolicyProducers()) {
-                producerProvider = new SharedDeadLetterPolicyProducerProvider(client);
-            } else {
-                producerProvider = new DefaultDeadLetterPolicyProducerProvider(client);
-            }
-
-            conf.setDeadLetterPolicyTopicProducerProvider(producerProvider);
+        if (policy != null && policy.isShareDeadLetterPolicyProducers()) {
+            producerProvider = new SharedDeadLetterPolicyProducerProvider(client);
+        } else {
+            producerProvider = new DefaultDeadLetterPolicyProducerProvider(client);
         }
+
+        conf.setDeadLetterPolicyTopicProducerProvider(producerProvider);
     }
 
     @Override

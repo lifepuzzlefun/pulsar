@@ -170,6 +170,7 @@ public class MultiTopicsConsumerImpl<T> extends ConsumerBase<T> {
         DeadLetterPolicyTopicProducerProvider confProvider = conf.getDeadLetterPolicyTopicProducerProvider();
 
         if (confProvider != null) {
+            // save field for closeAsync.
             this.deadLetterPolicyTopicProducerProvider = confProvider;
         }
 

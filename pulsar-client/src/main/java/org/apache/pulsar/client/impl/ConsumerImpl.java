@@ -1089,6 +1089,10 @@ public class ConsumerImpl<T> extends ConsumerBase<T> implements ConnectionHandle
             }
         }
 
+        if (deadLetterPolicyTopicProducerProvider != null && !hasParentConsumer) {
+            closeFutures.add(deadLetterPolicyTopicProducerProvider.closeAsync());
+        }
+
         return FutureUtil.waitForAll(closeFutures);
     }
 

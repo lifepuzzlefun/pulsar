@@ -75,7 +75,7 @@ public class SharedDeadLetterPolicyProducerProvider implements DeadLetterPolicyT
 
     @Override
     public boolean isProducerOwner() {
-        return true;
+        return false;
     }
 
     @Override

@@ -26,7 +26,6 @@ import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.RejectedExecutionException;
 import org.apache.bookkeeper.client.BookKeeper;
-import org.apache.bookkeeper.conf.ClientConfiguration;
 import org.apache.bookkeeper.mledger.ManagedLedgerFactory;
 import org.apache.bookkeeper.mledger.ManagedLedgerFactoryConfig;
 import org.apache.bookkeeper.mledger.impl.ManagedLedgerFactoryImpl;
@@ -34,8 +33,6 @@ import org.apache.bookkeeper.mledger.impl.ManagedLedgerFactoryImpl.BookkeeperFac
 import org.apache.bookkeeper.stats.NullStatsProvider;
 import org.apache.bookkeeper.stats.StatsLogger;
 import org.apache.bookkeeper.stats.StatsProvider;
-import org.apache.commons.configuration.Configuration;
-import org.apache.pulsar.broker.stats.prometheus.metrics.PrometheusMetricsProvider;
 import org.apache.pulsar.broker.storage.ManagedLedgerStorage;
 import org.apache.pulsar.common.policies.data.EnsemblePlacementPolicyConfig;
 import org.apache.pulsar.metadata.api.extended.MetadataStoreExtended;
@@ -77,15 +74,10 @@ public class ManagedLedgerClientFactory implements ManagedLedgerStorage {
         managedLedgerFactoryConfig.setManagedCursorInfoCompressionThresholdInBytes(
                 conf.getManagedCursorInfoCompressionThresholdInBytes());
 
-        Configuration configuration = new ClientConfiguration();
         if (conf.isBookkeeperClientExposeStatsToPrometheus()) {
-            configuration.addProperty(PrometheusMetricsProvider.PROMETHEUS_STATS_LATENCY_ROLLOVER_SECONDS,
-                    conf.getManagedLedgerPrometheusStatsLatencyRolloverSeconds());
-            configuration.addProperty(PrometheusMetricsProvider.CLUSTER_NAME, conf.getClusterName());
-            statsProvider = new PrometheusMetricsProvider();
+            this.statsProvider = conf.getStatsProvider();
         }
 
-        statsProvider.start(configuration);
         StatsLogger statsLogger = statsProvider.getStatsLogger("pulsar_managedLedger_client");
 
         this.defaultBkClient =

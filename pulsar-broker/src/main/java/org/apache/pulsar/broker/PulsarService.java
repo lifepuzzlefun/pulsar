@@ -75,6 +75,9 @@ import org.apache.bookkeeper.mledger.ManagedLedgerFactory;
 import org.apache.bookkeeper.mledger.impl.NullLedgerOffloader;
 import org.apache.bookkeeper.mledger.offload.Offloaders;
 import org.apache.bookkeeper.mledger.offload.OffloadersCache;
+import org.apache.bookkeeper.stats.NullStatsProvider;
+import org.apache.bookkeeper.stats.StatsProvider;
+import org.apache.commons.configuration.Configuration;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.pulsar.PulsarVersion;
 import org.apache.pulsar.broker.authentication.AuthenticationService;
@@ -109,6 +112,7 @@ import org.apache.pulsar.broker.service.schema.SchemaStorageFactory;
 import org.apache.pulsar.broker.stats.MetricsGenerator;
 import org.apache.pulsar.broker.stats.prometheus.PrometheusRawMetricsProvider;
 import org.apache.pulsar.broker.stats.prometheus.PulsarPrometheusMetricsServlet;
+import org.apache.pulsar.broker.stats.prometheus.metrics.PrometheusMetricsProvider;
 import org.apache.pulsar.broker.storage.ManagedLedgerStorage;
 import org.apache.pulsar.broker.transaction.buffer.TransactionBufferProvider;
 import org.apache.pulsar.broker.transaction.buffer.impl.TransactionBufferClientImpl;
@@ -204,6 +208,8 @@ public class PulsarService implements AutoCloseable, ShutdownService {
     private StrategicTwoPhaseCompactor strategicCompactor;
     private ResourceUsageTransportManager resourceUsageTransportManager;
     private ResourceGroupService resourceGroupServiceManager;
+
+    private StatsProvider statsProvider = new NullStatsProvider();
 
     private final ScheduledExecutorService executor;
 
@@ -597,6 +603,11 @@ public class PulsarService implements AutoCloseable, ShutdownService {
             brokerClientSharedScheduledExecutorProvider.shutdownNow();
             brokerClientSharedTimer.stop();
 
+            if (statsProvider != null) {
+                statsProvider.stop();
+                statsProvider = null;
+            }
+
             asyncCloseFutures.add(EventLoopUtil.shutdownGracefully(ioEventLoopGroup));
 
 
@@ -739,6 +750,19 @@ public class PulsarService implements AutoCloseable, ShutdownService {
                     && !LinuxInfoUtils.checkHasNicSpeeds()) {
                 throw new IllegalStateException("Unable to read VM NIC speed. You must set "
                         + "[loadBalancerOverrideBrokerNicSpeedGbps] to override it when load balancer is enabled.");
+            }
+
+            if (config.isBookkeeperClientExposeStatsToPrometheus()
+                    || config.isExposeMetadataStoreZookeeperStatsInPrometheus()) {
+                Configuration configuration = new ClientConfiguration();
+                configuration.addProperty(PrometheusMetricsProvider.PROMETHEUS_STATS_LATENCY_ROLLOVER_SECONDS,
+                        config.getManagedLedgerPrometheusStatsLatencyRolloverSeconds());
+                configuration.addProperty(PrometheusMetricsProvider.CLUSTER_NAME, config.getClusterName());
+                StatsProvider statsProvider = new PrometheusMetricsProvider();
+                statsProvider.start(configuration);
+
+                config.setStatsProvider(statsProvider);
+                this.statsProvider = statsProvider;
             }
 
             localMetadataSynchronizer = StringUtils.isNotBlank(config.getMetadataSyncEventTopic())
@@ -1108,6 +1132,7 @@ public class PulsarService implements AutoCloseable, ShutdownService {
                         .batchingMaxDelayMillis(config.getMetadataStoreBatchingMaxDelayMillis())
                         .batchingMaxOperations(config.getMetadataStoreBatchingMaxOperations())
                         .batchingMaxSizeKb(config.getMetadataStoreBatchingMaxSizeKb())
+                        .statsLogger(config.getStatsProvider().getStatsLogger("pulsar_metadata_store"))
                         .synchronizer(synchronizer)
                         .metadataStoreName(MetadataStoreConfig.METADATA_STORE)
                         .build());

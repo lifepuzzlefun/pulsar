@@ -436,6 +436,7 @@ public class NonPersistentTopic extends AbstractTopic implements Topic, TopicPol
 
                 if (currentUsageCount() == 0) {
                     isFenced = true;
+                    fencedTimestamp = System.currentTimeMillis();
 
                     List<CompletableFuture<Void>> futures = new ArrayList<>();
 
@@ -498,6 +499,7 @@ public class NonPersistentTopic extends AbstractTopic implements Topic, TopicPol
         try {
             if (!isFenced || closeWithoutWaitingClientDisconnect) {
                 isFenced = true;
+                fencedTimestamp = System.currentTimeMillis();
             } else {
                 log.warn("[{}] Topic is already being closed or deleted", topic);
                 closeFuture.completeExceptionally(new TopicFencedException("Topic is already fenced"));

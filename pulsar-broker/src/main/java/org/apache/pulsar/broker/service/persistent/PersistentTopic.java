@@ -2324,6 +2324,10 @@ public class PersistentTopic extends AbstractTopic implements Topic, AddEntryCal
         stats.lastOffloadLedgerId = ledger.getLastOffloadedLedgerId();
         stats.lastOffloadSuccessTimeStamp = ledger.getLastOffloadedSuccessTimestamp();
         stats.lastOffloadFailureTimeStamp = ledger.getLastOffloadedFailureTimestamp();
+        stats.fenced = isFenced;
+        stats.fencedTimestamp = fencedTimestamp;
+        stats.pendingAddEntryRequest = pendingWriteOps.get();
+
         Optional<CompactorMXBean> mxBean = getCompactorMXBean();
 
         stats.compaction.reset();
@@ -3525,6 +3529,7 @@ public class PersistentTopic extends AbstractTopic implements Topic, AddEntryCal
 
     private synchronized void fence() {
         isFenced = true;
+        fencedTimestamp = System.currentTimeMillis();
         ScheduledFuture<?> monitoringTask = this.fencedTopicMonitoringTask;
         if (monitoringTask == null || monitoringTask.isDone()) {
             final int timeout = brokerService.pulsar().getConfiguration().getTopicFencingTimeoutSeconds();
@@ -3557,6 +3562,7 @@ public class PersistentTopic extends AbstractTopic implements Topic, AddEntryCal
     private void fenceTopicToCloseOrDelete() {
         isClosingOrDeleting = true;
         isFenced = true;
+        fencedTimestamp = System.currentTimeMillis();
     }
 
     private void unfenceTopicToResume() {

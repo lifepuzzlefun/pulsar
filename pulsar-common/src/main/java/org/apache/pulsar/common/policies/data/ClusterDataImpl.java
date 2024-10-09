@@ -28,6 +28,7 @@ import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.pulsar.client.api.ProxyProtocol;
+import org.apache.pulsar.common.util.DefaultPulsarSslFactory;
 import org.apache.pulsar.common.util.URIPreconditions;
 
 /**
@@ -107,7 +108,7 @@ public final class ClusterDataImpl implements  ClusterData, Cloneable {
     private boolean brokerClientTlsEnabled;
     @ApiModelProperty(
         name = "tlsAllowInsecureConnection",
-        value = "Allow TLS connections to servers whose certificate cannot be"
+        value = "Allow TLS connections to servers whose certificate cannot"
                 + " be verified to have been signed by a trusted certificate"
                 + " authority."
     )
@@ -171,22 +172,21 @@ public final class ClusterDataImpl implements  ClusterData, Cloneable {
     )
     private String brokerClientCertificateFilePath;
     @ApiModelProperty(
+            name = "brokerClientSslFactoryPlugin",
+            value = "SSL Factory plugin used by internal client to generate the SSL Context and Engine"
+    )
+    private String brokerClientSslFactoryPlugin;
+    @ApiModelProperty(
+            name = "brokerClientSslFactoryPluginParams",
+            value = "Parameters used by the internal client's SSL factory plugin to generate the SSL Context and Engine"
+    )
+    private String brokerClientSslFactoryPluginParams;
+    @ApiModelProperty(
             name = "listenerName",
             value = "listenerName when client would like to connect to cluster",
             example = ""
     )
     private String listenerName;
-    @ApiModelProperty(
-            name = "migrated",
-            value = "flag to check if cluster is migrated to different cluster",
-            example = "true/false"
-    )
-    private boolean migrated;
-    @ApiModelProperty(
-            name = "migratedClusterUrl",
-            value = "url of cluster where current cluster is migrated"
-    )
-    private ClusterUrl migratedClusterUrl;
 
     public static ClusterDataImplBuilder builder() {
         return new ClusterDataImplBuilder();
@@ -216,9 +216,9 @@ public final class ClusterDataImpl implements  ClusterData, Cloneable {
                 .brokerClientTrustCertsFilePath(brokerClientTrustCertsFilePath)
                 .brokerClientCertificateFilePath(brokerClientCertificateFilePath)
                 .brokerClientKeyFilePath(brokerClientKeyFilePath)
-                .listenerName(listenerName)
-                .migrated(migrated)
-                .migratedClusterUrl(migratedClusterUrl);
+                .brokerClientSslFactoryPlugin(brokerClientSslFactoryPlugin)
+                .brokerClientSslFactoryPluginParams(brokerClientSslFactoryPluginParams)
+                .listenerName(listenerName);
     }
 
     @Data
@@ -244,9 +244,9 @@ public final class ClusterDataImpl implements  ClusterData, Cloneable {
         private String brokerClientCertificateFilePath;
         private String brokerClientKeyFilePath;
         private String brokerClientTrustCertsFilePath;
+        private String brokerClientSslFactoryPlugin = DefaultPulsarSslFactory.class.getName();
+        private String brokerClientSslFactoryPluginParams;
         private String listenerName;
-        private boolean migrated;
-        private ClusterUrl migratedClusterUrl;
 
         ClusterDataImplBuilder() {
         }
@@ -361,19 +361,20 @@ public final class ClusterDataImpl implements  ClusterData, Cloneable {
             return this;
         }
 
+        @Override
+        public ClusterDataImplBuilder brokerClientSslFactoryPlugin(String sslFactoryPlugin) {
+            this.brokerClientSslFactoryPlugin = sslFactoryPlugin;
+            return this;
+        }
+
+        @Override
+        public ClusterDataImplBuilder brokerClientSslFactoryPluginParams(String sslFactoryPluginParams) {
+            this.brokerClientSslFactoryPluginParams = sslFactoryPluginParams;
+            return this;
+        }
 
         public ClusterDataImplBuilder listenerName(String listenerName) {
             this.listenerName = listenerName;
-            return this;
-        }
-
-        public ClusterDataImplBuilder migrated(boolean migrated) {
-            this.migrated = migrated;
-            return this;
-        }
-
-        public ClusterDataImplBuilder migratedClusterUrl(ClusterUrl migratedClusterUrl) {
-            this.migratedClusterUrl = migratedClusterUrl;
             return this;
         }
 
@@ -400,9 +401,9 @@ public final class ClusterDataImpl implements  ClusterData, Cloneable {
                     brokerClientTrustCertsFilePath,
                     brokerClientKeyFilePath,
                     brokerClientCertificateFilePath,
-                    listenerName,
-                    migrated,
-                    migratedClusterUrl);
+                    brokerClientSslFactoryPlugin,
+                    brokerClientSslFactoryPluginParams,
+                    listenerName);
         }
     }
 

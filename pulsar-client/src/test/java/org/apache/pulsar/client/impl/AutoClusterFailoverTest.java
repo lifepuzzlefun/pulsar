@@ -23,15 +23,14 @@ import static org.mockito.Mockito.when;
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertNull;
 import static org.testng.Assert.assertTrue;
-import java.io.IOException;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import lombok.Cleanup;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.pulsar.client.api.Authentication;
 import org.apache.pulsar.client.api.AuthenticationFactory;
-import org.apache.pulsar.client.api.PulsarClientException;
 import org.apache.pulsar.client.api.ServiceUrlProvider;
 import org.apache.pulsar.client.impl.conf.ClientConfigurationData;
 import org.awaitility.Awaitility;
@@ -42,12 +41,13 @@ import org.testng.annotations.Test;
 @Slf4j
 public class AutoClusterFailoverTest {
     @Test
-    public void testBuildAutoClusterFailoverInstance() throws PulsarClientException {
+    public void testBuildAutoClusterFailoverInstance() throws Exception {
         String primary = "pulsar://localhost:6650";
         String secondary = "pulsar://localhost:6651";
         long failoverDelay = 30;
         long switchBackDelay = 60;
         long checkInterval = 1_000;
+        @Cleanup
         ServiceUrlProvider provider = AutoClusterFailover.builder()
                 .primary(primary)
                 .secondary(Collections.singletonList(secondary))
@@ -86,6 +86,7 @@ public class AutoClusterFailoverTest {
         Map<String, Authentication> secondaryAuthentications = new HashMap<>();
         secondaryAuthentications.put(secondary, secondaryAuthentication);
 
+        @Cleanup
         ServiceUrlProvider provider1 = AutoClusterFailover.builder()
                 .primary(primary)
                 .secondary(Collections.singletonList(secondary))
@@ -103,7 +104,7 @@ public class AutoClusterFailoverTest {
     }
 
     @Test
-    public void testInitialize() {
+    public void testInitialize() throws Exception {
         String primary = "pulsar://localhost:6650";
         String secondary = "pulsar://localhost:6651";
         long failoverDelay = 10;
@@ -112,6 +113,7 @@ public class AutoClusterFailoverTest {
 
         ClientConfigurationData configurationData = new ClientConfigurationData();
 
+        @Cleanup
         ServiceUrlProvider provider = AutoClusterFailover.builder()
                 .primary(primary)
                 .secondary(Collections.singletonList(secondary))
@@ -147,7 +149,7 @@ public class AutoClusterFailoverTest {
     }
 
     @Test
-    public void testAutoClusterFailoverSwitchWithoutAuthentication() {
+    public void testAutoClusterFailoverSwitchWithoutAuthentication() throws Exception {
         String primary = "pulsar://localhost:6650";
         String secondary = "pulsar://localhost:6651";
         long failoverDelay = 1;
@@ -156,6 +158,7 @@ public class AutoClusterFailoverTest {
 
         ClientConfigurationData configurationData = new ClientConfigurationData();
 
+        @Cleanup
         ServiceUrlProvider provider = AutoClusterFailover.builder()
                 .primary(primary)
                 .secondary(Collections.singletonList(secondary))
@@ -182,7 +185,7 @@ public class AutoClusterFailoverTest {
     }
 
     @Test
-    public void testAutoClusterFailoverSwitchWithAuthentication() throws IOException {
+    public void testAutoClusterFailoverSwitchWithAuthentication() throws Exception {
         String primary = "pulsar+ssl://localhost:6651";
         String secondary = "pulsar+ssl://localhost:6661";
         long failoverDelay = 1;
@@ -210,6 +213,7 @@ public class AutoClusterFailoverTest {
         configurationData.setTlsTrustCertsFilePath(primaryTlsTrustCertsFilePath);
         configurationData.setAuthentication(primaryAuthentication);
 
+        @Cleanup
         ServiceUrlProvider provider = AutoClusterFailover.builder()
                 .primary(primary)
                 .secondary(Collections.singletonList(secondary))
@@ -245,7 +249,7 @@ public class AutoClusterFailoverTest {
     }
 
     @Test
-    public void testAutoClusterFailoverSwitchTlsTrustStore() throws IOException {
+    public void testAutoClusterFailoverSwitchTlsTrustStore() throws Exception {
         String primary = "pulsar+ssl://localhost:6651";
         String secondary = "pulsar+ssl://localhost:6661";
         long failoverDelay = 1;
@@ -265,6 +269,7 @@ public class AutoClusterFailoverTest {
         configurationData.setTlsTrustStorePath(primaryTlsTrustStorePath);
         configurationData.setTlsTrustStorePassword(primaryTlsTrustStorePassword);
 
+        @Cleanup
         ServiceUrlProvider provider = AutoClusterFailover.builder()
                 .primary(primary)
                 .secondary(Collections.singletonList(secondary))

@@ -127,7 +127,7 @@ public class BrokerBkEnsemblesTests extends BkEnsemblesTestBase {
         consumer.close();
         producer.close();
         pulsar.getBrokerService().removeTopicFromCache(topic);
-        ManagedLedgerFactoryImpl factory = (ManagedLedgerFactoryImpl) pulsar.getManagedLedgerFactory();
+        ManagedLedgerFactoryImpl factory = (ManagedLedgerFactoryImpl) pulsar.getDefaultManagedLedgerFactory();
         Field field = ManagedLedgerFactoryImpl.class.getDeclaredField("ledgers");
         field.setAccessible(true);
         @SuppressWarnings("unchecked")
@@ -191,9 +191,9 @@ public class BrokerBkEnsemblesTests extends BkEnsemblesTestBase {
                 .build();
 
         final String ns1 = "prop/usc/crash-broker";
-        final int totalMessages = 100;
+        final int totalMessages = 99;
         final int totalDataLedgers = 5;
-        final int entriesPerLedger = totalMessages / totalDataLedgers;
+        final int entriesPerLedger = 20;
 
         try {
             admin.namespaces().createNamespace(ns1);
@@ -210,10 +210,8 @@ public class BrokerBkEnsemblesTests extends BkEnsemblesTestBase {
         PersistentTopic topic = (PersistentTopic) pulsar.getBrokerService().getOrCreateTopic(topic1).get();
         ManagedLedgerImpl ml = (ManagedLedgerImpl) topic.getManagedLedger();
         ManagedCursorImpl cursor = (ManagedCursorImpl) ml.getCursors().iterator().next();
-        Field configField = ManagedCursorImpl.class.getDeclaredField("config");
-        configField.setAccessible(true);
         // Create multiple data-ledger
-        ManagedLedgerConfig config = (ManagedLedgerConfig) configField.get(cursor);
+        ManagedLedgerConfig config = ml.getConfig();
         config.setMaxEntriesPerLedger(entriesPerLedger);
         config.setMinimumRolloverTime(1, TimeUnit.MILLISECONDS);
         // bookkeeper client
@@ -252,7 +250,7 @@ public class BrokerBkEnsemblesTests extends BkEnsemblesTestBase {
         // clean managed-ledger and recreate topic to clean any data from the cache
         producer.close();
         pulsar.getBrokerService().removeTopicFromCache(topic);
-        ManagedLedgerFactoryImpl factory = (ManagedLedgerFactoryImpl) pulsar.getManagedLedgerFactory();
+        ManagedLedgerFactoryImpl factory = (ManagedLedgerFactoryImpl) pulsar.getDefaultManagedLedgerFactory();
         Field field = ManagedLedgerFactoryImpl.class.getDeclaredField("ledgers");
         field.setAccessible(true);
         @SuppressWarnings("unchecked")
@@ -273,9 +271,9 @@ public class BrokerBkEnsemblesTests extends BkEnsemblesTestBase {
 
         retryStrategically((test) -> config.isAutoSkipNonRecoverableData(), 5, 100);
 
-        // (5) consumer will be able to consume 20 messages from last non-deleted ledger
+        // (5) consumer will be able to consume 19 messages from last non-deleted ledger
         consumer = client.newConsumer().topic(topic1).subscriptionName("my-subscriber-name").subscribe();
-        for (int i = 0; i < entriesPerLedger; i++) {
+        for (int i = 0; i < entriesPerLedger - 1; i++) {
             msg = consumer.receive();
             System.out.println(i);
             consumer.acknowledge(msg);
@@ -296,9 +294,9 @@ public class BrokerBkEnsemblesTests extends BkEnsemblesTestBase {
                 .statsInterval(0, TimeUnit.SECONDS)
                 .build();
 
-        final int totalMessages = 100;
+        final int totalMessages = 99;
         final int totalDataLedgers = 5;
-        final int entriesPerLedger = totalMessages / totalDataLedgers;
+        final int entriesPerLedger = 20;
 
         final String tenant = "prop";
         try {
@@ -323,10 +321,8 @@ public class BrokerBkEnsemblesTests extends BkEnsemblesTestBase {
         PersistentTopic topic = (PersistentTopic) pulsar.getBrokerService().getOrCreateTopic(topic1).get();
         ManagedLedgerImpl ml = (ManagedLedgerImpl) topic.getManagedLedger();
         ManagedCursorImpl cursor = (ManagedCursorImpl) ml.getCursors().iterator().next();
-        Field configField = ManagedCursorImpl.class.getDeclaredField("config");
-        configField.setAccessible(true);
         // Create multiple data-ledger
-        ManagedLedgerConfig config = (ManagedLedgerConfig) configField.get(cursor);
+        ManagedLedgerConfig config = ml.getConfig();
         config.setMaxEntriesPerLedger(entriesPerLedger);
         config.setMinimumRolloverTime(1, TimeUnit.MILLISECONDS);
         // bookkeeper client
@@ -403,7 +399,7 @@ public class BrokerBkEnsemblesTests extends BkEnsemblesTestBase {
 
     @Test
     public void testDeleteLedgerFactoryCorruptLedger() throws Exception {
-        ManagedLedgerFactoryImpl factory = (ManagedLedgerFactoryImpl) pulsar.getManagedLedgerFactory();
+        ManagedLedgerFactoryImpl factory = (ManagedLedgerFactoryImpl) pulsar.getDefaultManagedLedgerFactory();
         ManagedLedgerImpl ml = (ManagedLedgerImpl) factory.open("test");
 
         // bookkeeper client

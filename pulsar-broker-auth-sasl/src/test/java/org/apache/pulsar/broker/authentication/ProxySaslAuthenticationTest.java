@@ -206,6 +206,7 @@ public class ProxySaslAuthenticationTest extends ProducerConsumerBase {
 
 		lookupUrl = new URI(pulsar.getBrokerServiceUrl());
 		log.info("set client jaas section name: PulsarClient");
+		closeAdmin();
 		admin = PulsarAdmin.builder()
 			.serviceHttpUrl(brokerUrl.toString())
 			.authentication(AuthenticationFactory.create(AuthenticationSasl.class.getName(), clientSaslConfig))
@@ -241,6 +242,7 @@ public class ProxySaslAuthenticationTest extends ProducerConsumerBase {
 		proxyConfig.setBrokerServiceURL(pulsar.getBrokerServiceUrl());
 		proxyConfig.setSaslJaasClientAllowedIds(".*" + localHostname + ".*");
 		proxyConfig.setSaslJaasServerSectionName("PulsarProxy");
+		proxyConfig.setClusterName(configClusterName);
 
 		// proxy connect to broker
 		proxyConfig.setBrokerClientAuthenticationPlugin(AuthenticationSasl.class.getName());
@@ -258,7 +260,11 @@ public class ProxySaslAuthenticationTest extends ProducerConsumerBase {
 		proxyConfig.setForwardAuthorizationCredentials(true);
 		AuthenticationService authenticationService = new AuthenticationService(
                         PulsarConfigurationLoader.convertFrom(proxyConfig));
-		ProxyService proxyService = new ProxyService(proxyConfig, authenticationService);
+		@Cleanup
+		final Authentication proxyClientAuthentication = AuthenticationFactory.create(proxyConfig.getBrokerClientAuthenticationPlugin(),
+				proxyConfig.getBrokerClientAuthenticationParameters());
+		proxyClientAuthentication.start();
+		ProxyService proxyService = new ProxyService(proxyConfig, authenticationService, proxyClientAuthentication);
 
 		proxyService.start();
 		final String proxyServiceUrl = "pulsar://localhost:" + proxyService.getListenPort().get();

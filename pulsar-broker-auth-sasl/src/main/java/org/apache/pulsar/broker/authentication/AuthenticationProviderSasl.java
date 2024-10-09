@@ -78,6 +78,12 @@ public class AuthenticationProviderSasl implements AuthenticationProvider {
 
     @Override
     public void initialize(ServiceConfiguration config) throws IOException {
+        initialize(Context.builder().config(config).build());
+    }
+
+    @Override
+    public void initialize(Context context) throws IOException {
+        var config = context.getConfig();
         this.configuration = new HashMap<>();
         final String allowedIdsPatternRegExp = config.getSaslJaasClientAllowedIds();
         configuration.put(JAAS_CLIENT_ALLOWED_IDS, allowedIdsPatternRegExp);
@@ -125,6 +131,10 @@ public class AuthenticationProviderSasl implements AuthenticationProvider {
 
     @Override
     public void close() throws IOException {
+        if (jaasCredentialsContainer != null) {
+            jaasCredentialsContainer.close();
+            jaasCredentialsContainer = null;
+        }
     }
 
     @Override

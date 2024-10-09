@@ -37,6 +37,7 @@ import org.apache.commons.lang3.reflect.MethodUtils;
 import org.apache.pulsar.broker.admin.impl.BrokersBase;
 import org.apache.pulsar.broker.namespace.NamespaceService;
 import org.apache.pulsar.broker.service.BrokerTestBase;
+import org.apache.pulsar.broker.service.TopicPolicyTestUtils;
 import org.apache.pulsar.broker.service.Topic;
 import org.apache.pulsar.broker.service.persistent.PersistentTopic;
 import org.apache.pulsar.broker.service.schema.SchemaRegistry;
@@ -81,6 +82,7 @@ public class PartitionedSystemTopicTest extends BrokerTestBase {
         conf.setDefaultNumPartitions(PARTITIONS);
         conf.setManagedLedgerMaxEntriesPerLedger(1);
         conf.setBrokerDeleteInactiveTopicsEnabled(false);
+        conf.setTransactionCoordinatorEnabled(true);
 
         super.baseSetup();
     }
@@ -164,7 +166,7 @@ public class PartitionedSystemTopicTest extends BrokerTestBase {
 
     @Test
     public void testHealthCheckTopicNotOffload() throws Exception {
-        NamespaceName namespaceName = NamespaceService.getHeartbeatNamespaceV2(pulsar.getLookupServiceAddress(),
+        NamespaceName namespaceName = NamespaceService.getHeartbeatNamespaceV2(pulsar.getBrokerId(),
                 pulsar.getConfig());
         TopicName topicName = TopicName.get("persistent", namespaceName, BrokersBase.HEALTH_CHECK_TOPIC_SUFFIX);
         PersistentTopic persistentTopic = (PersistentTopic) pulsar.getBrokerService()
@@ -184,10 +186,17 @@ public class PartitionedSystemTopicTest extends BrokerTestBase {
     @Test
     public void testSystemNamespaceNotCreateChangeEventsTopic() throws Exception {
         admin.brokers().healthcheck(TopicVersion.V2);
-        NamespaceName namespaceName = NamespaceService.getHeartbeatNamespaceV2(pulsar.getLookupServiceAddress(),
+        NamespaceName namespaceName = NamespaceService.getHeartbeatNamespaceV2(pulsar.getBrokerId(),
                 pulsar.getConfig());
         TopicName topicName = TopicName.get("persistent", namespaceName, SystemTopicNames.NAMESPACE_EVENTS_LOCAL_NAME);
         Optional<Topic> optionalTopic = pulsar.getBrokerService()
+                .getTopic(topicName.getPartition(1).toString(), false).join();
+        Assert.assertTrue(optionalTopic.isEmpty());
+
+        TopicName heartbeatTopicName = TopicName.get("persistent",
+                namespaceName, BrokersBase.HEALTH_CHECK_TOPIC_SUFFIX);
+        admin.topics().getRetention(heartbeatTopicName.toString());
+        optionalTopic = pulsar.getBrokerService()
                 .getTopic(topicName.getPartition(1).toString(), false).join();
         Assert.assertTrue(optionalTopic.isEmpty());
     }
@@ -195,7 +204,7 @@ public class PartitionedSystemTopicTest extends BrokerTestBase {
     @Test
     public void testHeartbeatTopicNotAllowedToSendEvent() throws Exception {
         admin.brokers().healthcheck(TopicVersion.V2);
-        NamespaceName namespaceName = NamespaceService.getHeartbeatNamespaceV2(pulsar.getLookupServiceAddress(),
+        NamespaceName namespaceName = NamespaceService.getHeartbeatNamespaceV2(pulsar.getBrokerId(),
                 pulsar.getConfig());
         TopicName topicName = TopicName.get("persistent", namespaceName, SystemTopicNames.NAMESPACE_EVENTS_LOCAL_NAME);
         for (int partition = 0; partition < PARTITIONS; partition ++) {
@@ -205,6 +214,40 @@ public class PartitionedSystemTopicTest extends BrokerTestBase {
         Assert.assertThrows(PulsarAdminException.ConflictException.class, () -> {
             admin.topicPolicies().setMaxConsumers(topicName.toString(), 2);
         });
+    }
+
+    @Test
+    public void testHeartbeatTopicBeDeleted() throws Exception {
+        admin.brokers().healthcheck(TopicVersion.V2);
+        NamespaceName namespaceName = NamespaceService.getHeartbeatNamespaceV2(pulsar.getBrokerId(),
+                pulsar.getConfig());
+        TopicName heartbeatTopicName = TopicName.get("persistent", namespaceName, BrokersBase.HEALTH_CHECK_TOPIC_SUFFIX);
+
+        List<String> topics = getPulsar().getNamespaceService().getListOfPersistentTopics(namespaceName).join();
+        Assert.assertEquals(topics.size(), 1);
+        Assert.assertEquals(topics.get(0), heartbeatTopicName.toString());
+
+        admin.topics().delete(heartbeatTopicName.toString(), true);
+        topics = getPulsar().getNamespaceService().getListOfPersistentTopics(namespaceName).join();
+        Assert.assertEquals(topics.size(), 0);
+    }
+
+    @Test
+    public void testHeartbeatNamespaceNotCreateTransactionInternalTopic() throws Exception {
+        admin.brokers().healthcheck(TopicVersion.V2);
+        NamespaceName namespaceName = NamespaceService.getHeartbeatNamespaceV2(pulsar.getBrokerId(),
+                pulsar.getConfig());
+        TopicName topicName = TopicName.get("persistent",
+                namespaceName, SystemTopicNames.TRANSACTION_BUFFER_SNAPSHOT);
+        Optional<Topic> optionalTopic = pulsar.getBrokerService()
+                .getTopic(topicName.getPartition(1).toString(), false).join();
+        Assert.assertTrue(optionalTopic.isEmpty());
+
+        List<String> topics = getPulsar().getNamespaceService().getListOfPersistentTopics(namespaceName).join();
+        Assert.assertEquals(topics.size(), 1);
+        TopicName heartbeatTopicName = TopicName.get("persistent",
+                namespaceName, BrokersBase.HEALTH_CHECK_TOPIC_SUFFIX);
+        Assert.assertEquals(topics.get(0), heartbeatTopicName.toString());
     }
 
     @Test
@@ -317,7 +360,8 @@ public class PartitionedSystemTopicTest extends BrokerTestBase {
         PersistentTopic persistentTopic = (PersistentTopic) topic.join().get();
         persistentTopic.close();
         admin.topics().delete(topicName);
-        TopicPolicies topicPolicies = pulsar.getTopicPoliciesService().getTopicPoliciesIfExists(TopicName.get(topicName));
+        TopicPolicies topicPolicies = TopicPolicyTestUtils.getTopicPolicies(pulsar.getTopicPoliciesService(),
+                TopicName.get(topicName));
         assertNull(topicPolicies);
         String base = TopicName.get(topicName).getPartitionedTopicName();
         String id = TopicName.get(base).getSchemaName();

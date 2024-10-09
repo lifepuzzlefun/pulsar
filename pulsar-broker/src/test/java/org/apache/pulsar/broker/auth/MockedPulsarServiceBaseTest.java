@@ -19,16 +19,21 @@
 package org.apache.pulsar.broker.auth;
 
 import static org.apache.pulsar.broker.BrokerTestUtil.spyWithoutRecordingInvocations;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.testng.Assert.assertEquals;
 import com.google.common.collect.Sets;
+import io.opentelemetry.sdk.testing.assertj.OpenTelemetryAssertions;
 import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.net.InetSocketAddress;
 import java.net.URI;
 import java.net.URL;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -40,6 +45,7 @@ import javax.ws.rs.container.AsyncResponse;
 import javax.ws.rs.container.TimeoutHandler;
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import org.apache.pulsar.broker.BrokerTestUtil;
 import org.apache.pulsar.broker.PulsarService;
 import org.apache.pulsar.broker.ServiceConfiguration;
 import org.apache.pulsar.broker.authentication.AuthenticationProviderTls;
@@ -53,7 +59,9 @@ import org.apache.pulsar.client.admin.PulsarAdminException;
 import org.apache.pulsar.client.api.ClientBuilder;
 import org.apache.pulsar.client.api.PulsarClient;
 import org.apache.pulsar.client.api.PulsarClientException;
+import org.apache.pulsar.client.impl.ConnectionPool;
 import org.apache.pulsar.client.impl.ProducerImpl;
+import org.apache.pulsar.client.impl.PulsarClientImpl;
 import org.apache.pulsar.client.impl.auth.AuthenticationDisabled;
 import org.apache.pulsar.client.impl.auth.AuthenticationTls;
 import org.apache.pulsar.common.policies.data.ClusterData;
@@ -77,7 +85,7 @@ import org.testng.annotations.DataProvider;
 public abstract class MockedPulsarServiceBaseTest extends TestRetrySupport {
     // All certificate-authority files are copied from the tests/certificate-authority directory and all share the same
     // root CA.
-    protected static String getTlsFileForClient(String name) {
+    public static String getTlsFileForClient(String name) {
         return ResourceUtils.getAbsolutePath(String.format("certificate-authority/client-keys/%s.pem", name));
     }
     public final static String CA_CERT_FILE_PATH =
@@ -140,6 +148,8 @@ public abstract class MockedPulsarServiceBaseTest extends TestRetrySupport {
 
     protected boolean enableBrokerInterceptor = false;
 
+    private final List<AutoCloseable> closeables = new ArrayList<>();
+
     public MockedPulsarServiceBaseTest() {
         resetConfig();
     }
@@ -159,7 +169,6 @@ public abstract class MockedPulsarServiceBaseTest extends TestRetrySupport {
     }
 
     protected final void internalSetup() throws Exception {
-        incrementSetupNumber();
         init();
         lookupUrl = new URI(brokerUrl.toString());
         if (isTcpLookup) {
@@ -234,9 +243,13 @@ public abstract class MockedPulsarServiceBaseTest extends TestRetrySupport {
         this.conf.setWebServicePort(Optional.of(0));
         this.conf.setNumExecutorThreadPoolSize(5);
         this.conf.setExposeBundlesMetricsInPrometheus(true);
+        // Disable the dispatcher retry backoff in tests by default
+        this.conf.setDispatcherRetryBackoffInitialTimeInMs(0);
+        this.conf.setDispatcherRetryBackoffMaxTimeInMs(0);
     }
 
     protected final void init() throws Exception {
+        incrementSetupNumber();
         doInitConf();
         // trying to config the broker internal client
         if (conf.getWebServicePortTls().isPresent()
@@ -261,6 +274,32 @@ public abstract class MockedPulsarServiceBaseTest extends TestRetrySupport {
         markCurrentSetupNumberCleaned();
         // if init fails, some of these could be null, and if so would throw
         // an NPE in shutdown, obscuring the real error
+        closeAdmin();
+        if (pulsarClient != null) {
+            pulsarClient.shutdown();
+            pulsarClient = null;
+        }
+        if (brokerGateway != null) {
+            brokerGateway.close();
+            brokerGateway = null;
+        }
+        if (pulsarTestContext != null) {
+            pulsarTestContext.close();
+            pulsarTestContext = null;
+        }
+
+        resetConfig();
+        callCloseables(closeables);
+        closeables.clear();
+        onCleanup();
+
+        // clear fields to avoid test runtime memory leak, pulsarTestContext already handles closing of these instances
+        pulsar = null;
+        mockZooKeeper = null;
+        mockZooKeeperGlobal = null;
+    }
+
+    protected void closeAdmin() {
         if (admin != null) {
             admin.close();
             if (MockUtil.isMock(admin)) {
@@ -268,23 +307,25 @@ public abstract class MockedPulsarServiceBaseTest extends TestRetrySupport {
             }
             admin = null;
         }
-        if (pulsarClient != null) {
-            pulsarClient.shutdown();
-            pulsarClient = null;
-        }
-        if (brokerGateway != null) {
-            brokerGateway.close();
-        }
-        if (pulsarTestContext != null) {
-            pulsarTestContext.close();
-            pulsarTestContext = null;
-        }
-        resetConfig();
-        onCleanup();
     }
 
     protected void onCleanup() {
 
+    }
+
+    protected <T extends AutoCloseable> T registerCloseable(T closeable) {
+        closeables.add(closeable);
+        return closeable;
+    }
+
+    private static void callCloseables(List<AutoCloseable> closeables) {
+        for (int i = closeables.size() - 1; i >= 0; i--) {
+            try {
+                closeables.get(i).close();
+            } catch (Exception e) {
+                log.error("Failure in calling close method", e);
+            }
+        }
     }
 
     protected abstract void setup() throws Exception;
@@ -420,19 +461,27 @@ public abstract class MockedPulsarServiceBaseTest extends TestRetrySupport {
         return builder;
     }
 
+    protected PulsarTestContext createAdditionalPulsarTestContext(ServiceConfiguration conf) throws Exception {
+        return createAdditionalPulsarTestContext(conf, null);
+    }
     /**
      * This method can be used in test classes for creating additional PulsarTestContext instances
      * that share the same mock ZooKeeper and BookKeeper instances as the main PulsarTestContext instance.
      *
      * @param conf the ServiceConfiguration instance to use
+     * @param builderCustomizer a consumer that can be used to customize the builder configuration
      * @return the PulsarTestContext instance
      * @throws Exception if an error occurs
      */
-    protected PulsarTestContext createAdditionalPulsarTestContext(ServiceConfiguration conf) throws Exception {
-        return createPulsarTestContextBuilder(conf)
+    protected PulsarTestContext createAdditionalPulsarTestContext(ServiceConfiguration conf,
+                                              Consumer<PulsarTestContext.Builder> builderCustomizer) throws Exception {
+        var builder = createPulsarTestContextBuilder(conf)
                 .reuseMockBookkeeperAndMetadataStores(pulsarTestContext)
-                .reuseSpyConfig(pulsarTestContext)
-                .build();
+                .reuseSpyConfig(pulsarTestContext);
+        if (builderCustomizer != null) {
+            builderCustomizer.accept(builder);
+        }
+        return builder.build();
     }
 
     protected void waitForZooKeeperWatchers() {
@@ -681,6 +730,38 @@ public abstract class MockedPulsarServiceBaseTest extends TestRetrySupport {
     public static class ServiceProducer {
         private org.apache.pulsar.broker.service.Producer serviceProducer;
         private PersistentTopic persistentTopic;
+    }
+
+    protected void sleepSeconds(int seconds){
+        try {
+            Thread.sleep(1000 * seconds);
+        } catch (InterruptedException e) {
+            log.warn("This thread has been interrupted", e);
+            Thread.currentThread().interrupt();
+        }
+    }
+
+    private static void reconnectAllConnections(PulsarClientImpl c) throws Exception {
+        ConnectionPool pool = c.getCnxPool();
+        Method closeAllConnections = ConnectionPool.class.getDeclaredMethod("closeAllConnections", new Class[]{});
+        closeAllConnections.setAccessible(true);
+        closeAllConnections.invoke(pool, new Object[]{});
+    }
+
+    protected void reconnectAllConnections() throws Exception {
+        reconnectAllConnections((PulsarClientImpl) pulsarClient);
+    }
+
+    protected void assertOtelMetricLongSumValue(String metricName, int value) {
+        assertThat(pulsarTestContext.getOpenTelemetryMetricReader().collectAllMetrics())
+                .anySatisfy(metric -> OpenTelemetryAssertions.assertThat(metric)
+                        .hasName(metricName)
+                        .hasLongSumSatisfying(
+                                sum -> sum.hasPointsSatisfying(point -> point.hasValue(value))));
+    }
+
+    protected void logTopicStats(String topic) {
+        BrokerTestUtil.logTopicStats(log, admin, topic);
     }
 
     private static final Logger log = LoggerFactory.getLogger(MockedPulsarServiceBaseTest.class);
